@@ -28,13 +28,13 @@
         <div id="sidebar-menu">
             <ul class="metismenu" id="side-menu">
 
-                <li class="menu-title">NAVIGATION</li>
+                <li class="menu-title"><?= htmlspecialchars(app_name(), ENT_QUOTES, 'UTF-8'); ?></li>
 
                 <!-- Dashboard -->
                 <li class="<?= $isActive(['Page/admin']); ?>">
                     <a href="<?= base_url('Page/admin'); ?>" class="waves-effect">
                         <i class="bi bi-house-door"></i>
-                        <span> Dashboard </span>
+                        <span> Journal Dashboard </span>
                     </a>
                 </li>
 

@@ -876,8 +876,8 @@ class Provincial extends CI_Controller
     {
         $validRows = array();
         $errors    = array();
-        $allowed   = array('Gold', 'Silver', 'Bronze');
-        $medalCounts = array('Gold' => 0, 'Silver' => 0, 'Bronze' => 0);
+        $allowed   = array('Gold', 'Silver', 'Bronze', '4th', '5th');
+        $medalCounts = array('Gold' => 0, 'Silver' => 0, 'Bronze' => 0, '4th' => 0, '5th' => 0);
         $skippedMissing = 0;
 
         if (!is_array($rawRows)) {
@@ -911,7 +911,7 @@ class Provincial extends CI_Controller
                 : 'Entry #' . ($index + 1);
 
             if (!in_array($medal, $allowed, true)) {
-                $errors[] = $label . ' needs a valid medal (Gold, Silver, or Bronze).';
+                $errors[] = $label . ' needs a valid placement (1st–5th).';
                 continue;
             }
 

@@ -96,6 +96,8 @@ class Winners_model extends CI_Model
             SUM(medal = 'Gold')   AS gold_count,
             SUM(medal = 'Silver') AS silver_count,
             SUM(medal = 'Bronze') AS bronze_count,
+            SUM(medal = '4th')    AS fourth_count,
+            SUM(medal = '5th')    AS fifth_count,
             COUNT(*)              AS total_medals
         ", FALSE)->from('winners');
         $this->apply_para_filter($tallyBuilder, $paraMode, 'event_name');
@@ -130,6 +132,8 @@ class Winners_model extends CI_Model
             m.gold_count,
             m.silver_count,
             m.bronze_count,
+            m.fourth_count,
+            m.fifth_count,
             m.total_medals
         ", FALSE);
         $this->db->from('winners w');
@@ -201,6 +205,8 @@ class Winners_model extends CI_Model
             SUM(medal = 'Gold')   AS gold,
             SUM(medal = 'Silver') AS silver,
             SUM(medal = 'Bronze') AS bronze,
+            SUM(medal = '4th')    AS fourth,
+            SUM(medal = '5th')    AS fifth,
             COUNT(*)              AS total_medals
         ", FALSE);
         $this->db->from('winners');
@@ -223,6 +229,8 @@ class Winners_model extends CI_Model
             SUM(medal = 'Gold')   AS gold,
             SUM(medal = 'Silver') AS silver,
             SUM(medal = 'Bronze') AS bronze,
+            SUM(medal = '4th')    AS fourth,
+            SUM(medal = '5th')    AS fifth,
             COUNT(*)              AS total_medals
         ", FALSE);
         $this->db->from('winners');
@@ -246,6 +254,8 @@ class Winners_model extends CI_Model
         SUM(medal = 'Gold')                  AS gold,
         SUM(medal = 'Silver')                AS silver,
         SUM(medal = 'Bronze')                AS bronze,
+        SUM(medal = '4th')                   AS fourth,
+        SUM(medal = '5th')                   AS fifth,
         COUNT(*)                             AS total_medals,
         MAX(created_at)                      AS last_update
     ", FALSE);

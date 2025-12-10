@@ -53,6 +53,37 @@
                             $isLoggedIn = isset($this) && isset($this->session) ? (bool)$this->session->userdata('logged_in') : false;
                             $loginUrl   = $isLoggedIn ? app_url('admin') : site_url('login');
                             $loginText  = $isLoggedIn ? 'Admin Dashboard' : 'Login';
+
+                            // Placement helpers to map medal values to 1st–5th labels
+                            $placementLabel = function ($medal) {
+                                $m = strtolower(trim((string) $medal));
+                                if ($m === 'gold' || $m === '1st' || $m === 'first') return '1st';
+                                if ($m === 'silver' || $m === '2nd' || $m === 'second') return '2nd';
+                                if ($m === 'bronze' || $m === '3rd' || $m === 'third') return '3rd';
+                                if ($m === '4th' || $m === 'fourth') return '4th';
+                                if ($m === '5th' || $m === 'fifth') return '5th';
+                                return ucfirst($medal);
+                            };
+                            $placementKey = function ($medal) use ($placementLabel) {
+                                $label = $placementLabel($medal);
+                                if ($label === '1st') return 'first';
+                                if ($label === '2nd') return 'second';
+                                if ($label === '3rd') return 'third';
+                                if ($label === '4th') return 'fourth';
+                                if ($label === '5th') return 'fifth';
+                                return 'other';
+                            };
+                            $placementOrder = array('first', 'second', 'third', 'fourth', 'fifth');
+
+                            $getCount = function ($stats, $fields) {
+                                $sum = 0;
+                                foreach ($fields as $f) {
+                                    if (isset($stats->$f)) {
+                                        $sum += (int) $stats->$f;
+                                    }
+                                }
+                                return $sum;
+                            };
                             ?>
                             <?php if ($activeMunicipalityHeader === ''): ?>
                                 <img src="<?= base_url('upload/banners/Banner.png'); ?>" alt="<?= htmlspecialchars($meet_title . ' banner', ENT_QUOTES, 'UTF-8'); ?>" class="banner-image">
@@ -97,10 +128,12 @@
                         $teamsTotal     = isset($municipalities_all) && is_array($municipalities_all) ? count($municipalities_all) : 0;
                         $municipalities = $teamsTotal;
                         $events         = $overview ? (int)$overview->events : 0;
-                        $goldTotal      = $overview ? (int)$overview->gold : 0;
-                        $silverTotal    = $overview ? (int)$overview->silver : 0;
-                        $bronzeTotal    = $overview ? (int)$overview->bronze : 0;
-                        $totalMedals    = $overview ? (int)$overview->total_medals : 0;
+                        $firstTotal     = $overview ? $getCount($overview, array('first', 'gold')) : 0;
+                        $secondTotal    = $overview ? $getCount($overview, array('second', 'silver')) : 0;
+                        $thirdTotal     = $overview ? $getCount($overview, array('third', 'bronze')) : 0;
+                        $fourthTotal    = $overview ? $getCount($overview, array('fourth')) : 0;
+                        $fifthTotal     = $overview ? $getCount($overview, array('fifth')) : 0;
+                        $totalMedals    = $overview ? (int)$overview->total_medals : ($firstTotal + $secondTotal + $thirdTotal + $fourthTotal + $fifthTotal);
                         // Assume last_update is stored in UTC in the DB
                         if ($overview && !empty($overview->last_update)) {
                             try {
@@ -150,6 +183,7 @@
                         $eventSummaries = array();
                         foreach ($winnersSorted as $w) {
                             $eventId = $w->event_id ?? null;
+                            $placeKey = $placementKey($w->medal ?? '');
 
                             // ✅ Same grouping logic for ALL groups (including PARAGAMES):
                             // one summary per Event + Group + Category
@@ -166,13 +200,17 @@
                                     'event_name'   => $w->event_name ?? 'Unknown Event',
                                     'event_group'  => $w->event_group ?? '-',
                                     'category'     => $w->category ?? '-',
-                                    'gold'         => 0,
-                                    'silver'       => 0,
-                                    'bronze'       => 0,
+                                    'first'        => 0,
+                                    'second'       => 0,
+                                    'third'        => 0,
+                                    'fourth'       => 0,
+                                    'fifth'        => 0,
                                     'teams'        => array(),
-                                    'gold_teams'   => array(),
-                                    'silver_teams' => array(),
-                                    'bronze_teams' => array()
+                                    'first_teams'  => array(),
+                                    'second_teams' => array(),
+                                    'third_teams'  => array(),
+                                    'fourth_teams' => array(),
+                                    'fifth_teams'  => array()
                                 );
                             }
 
@@ -181,21 +219,11 @@
                                 $eventSummaries[$key]['teams'][] = $teamName;
                             }
 
-                            $medal = strtolower($w->medal ?? '');
-                            if ($medal === 'gold') {
-                                $eventSummaries[$key]['gold'] += 1;
-                                if ($teamName !== '' && !in_array($teamName, $eventSummaries[$key]['gold_teams'], true)) {
-                                    $eventSummaries[$key]['gold_teams'][] = $teamName;
-                                }
-                            } elseif ($medal === 'silver') {
-                                $eventSummaries[$key]['silver'] += 1;
-                                if ($teamName !== '' && !in_array($teamName, $eventSummaries[$key]['silver_teams'], true)) {
-                                    $eventSummaries[$key]['silver_teams'][] = $teamName;
-                                }
-                            } elseif ($medal === 'bronze') {
-                                $eventSummaries[$key]['bronze'] += 1;
-                                if ($teamName !== '' && !in_array($teamName, $eventSummaries[$key]['bronze_teams'], true)) {
-                                    $eventSummaries[$key]['bronze_teams'][] = $teamName;
+                            if (in_array($placeKey, $placementOrder, true)) {
+                                $eventSummaries[$key][$placeKey] += 1;
+                                $teamBucket = $placeKey . '_teams';
+                                if ($teamName !== '' && !in_array($teamName, $eventSummaries[$key][$teamBucket], true)) {
+                                    $eventSummaries[$key][$teamBucket][] = $teamName;
                                 }
                             }
                         }
@@ -219,15 +247,17 @@
                                         'event_name' => $ev->event_name ?? 'Unknown Event',
                                         'event_group' => $ev->group_name ?? '-',
                                         'category' => $ev->category_name ?? '-',
-                                        'gold' => 0,
-                                        'silver' => 0,
-                                        'bronze' => 0,
+                                        'first' => 0,
+                                        'second' => 0,
+                                        'third' => 0,
+                                        'fourth' => 0,
+                                        'fifth' => 0,
                                         'teams' => array()
                                     );
                                 }
-                                $eventSummaries[$key]['gold'] += $g;
-                                $eventSummaries[$key]['silver'] += $s;
-                                $eventSummaries[$key]['bronze'] += $b;
+                                $eventSummaries[$key]['first'] += $g;
+                                $eventSummaries[$key]['second'] += $s;
+                                $eventSummaries[$key]['third'] += $b;
                             }
                             $eventSummaries = array_values($eventSummaries);
                             usort($eventSummaries, function ($a, $b) {
@@ -266,9 +296,11 @@
                                             <span id="stat-total-medals"><?= $totalMedals; ?></span>
                                             <span id="stat-medal-breakdown"
                                                 style="font-size:0.9rem;font-weight:700;color:#2563eb;">
-                                                (<span class="medal-filter" data-medal="Gold" style="cursor:pointer;"><?= $goldTotal; ?>G</span>
-                                                · <span class="medal-filter" data-medal="Silver" style="cursor:pointer;"><?= $silverTotal; ?>S</span>
-                                                · <span class="medal-filter" data-medal="Bronze" style="cursor:pointer;"><?= $bronzeTotal; ?>B</span>)
+                                                (<span class="medal-filter" data-medal="1st" style="cursor:pointer;"><?= $firstTotal; ?>×1st</span>
+                                                · <span class="medal-filter" data-medal="2nd" style="cursor:pointer;"><?= $secondTotal; ?>×2nd</span>
+                                                · <span class="medal-filter" data-medal="3rd" style="cursor:pointer;"><?= $thirdTotal; ?>×3rd</span>
+                                                · <span class="medal-filter" data-medal="4th" style="cursor:pointer;"><?= $fourthTotal; ?>×4th</span>
+                                                · <span class="medal-filter" data-medal="5th" style="cursor:pointer;"><?= $fifthTotal; ?>×5th</span>)
                                             </span>
                                         </div>
                                         <!--<div class="summary-sub">-->
@@ -321,18 +353,11 @@
                                         <thead>
                                             <tr>
                                                 <th>Team</th>
-                                                <th class="text-center col-gold">
-                                                    <span class="medal-icon">🥇</span>
-                                                    <span class="medal-label">Gold</span>
-                                                </th>
-                                                <th class="text-center col-silver">
-                                                    <span class="medal-icon">🥈</span>
-                                                    <span class="medal-label">Silver</span>
-                                                </th>
-                                                <th class="text-center col-bronze">
-                                                    <span class="medal-icon">🥉</span>
-                                                    <span class="medal-label">Bronze</span>
-                                                </th>
+                                                <th class="text-center col-gold">1st</th>
+                                                <th class="text-center col-silver">2nd</th>
+                                                <th class="text-center col-bronze">3rd</th>
+                                                <th class="text-center">4th</th>
+                                                <th class="text-center">5th</th>
                                                 <th class="text-center">Total</th>
                                             </tr>
                                         </thead>
@@ -345,13 +370,15 @@
                                                     $mKey = $normalizeName($mName);
                                                     $stats = $tallyMap[$mKey] ?? null;
                                                     $hasData = $stats && ((int)$stats->total_medals > 0 || (int)$stats->gold > 0 || (int)$stats->silver > 0 || (int)$stats->bronze > 0);
-                                                    $gold = $stats ? (int) $stats->gold : 0;
-                                                    $silver = $stats ? (int) $stats->silver : 0;
-                                                    $bronze = $stats ? (int) $stats->bronze : 0;
-                                                    $total = $stats ? (int) $stats->total_medals : 0;
-                                                    $goldClass = ($gold > 0) ? ' col-gold' : '';
-                                                    $silverClass = ($silver > 0) ? ' col-silver' : '';
-                                                    $bronzeClass = ($bronze > 0) ? ' col-bronze' : '';
+                                                    $first = $stats ? $getCount($stats, array('first', 'gold')) : 0;
+                                                    $second = $stats ? $getCount($stats, array('second', 'silver')) : 0;
+                                                    $third = $stats ? $getCount($stats, array('third', 'bronze')) : 0;
+                                                    $fourth = $stats ? $getCount($stats, array('fourth')) : 0;
+                                                    $fifth = $stats ? $getCount($stats, array('fifth')) : 0;
+                                                    $total = $first + $second + $third + $fourth + $fifth;
+                                                    $goldClass = ($first > 0) ? ' col-gold' : '';
+                                                    $silverClass = ($second > 0) ? ' col-silver' : '';
+                                                    $bronzeClass = ($third > 0) ? ' col-bronze' : '';
                                                     $logo = isset($logoMap[$mName]) ? $logoMap[$mName] : '';
                                                     $filterUrl = app_url() . '?municipality=' . urlencode($mName) . $groupParam;
                                                     ?>
@@ -366,17 +393,27 @@
                                                         </td>
                                                         <td class="text-center font-weight-bold<?= $goldClass; ?>">
                                                             <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="Gold"><?= $gold; ?></a>
+                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="1st"><?= $first; ?></a>
                                                                 <?php else: ?>—<?php endif; ?>
                                                         </td>
                                                         <td class="text-center font-weight-bold<?= $silverClass; ?>">
                                                             <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="Silver"><?= $silver; ?></a>
+                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="2nd"><?= $second; ?></a>
                                                                 <?php else: ?>—<?php endif; ?>
                                                         </td>
                                                         <td class="text-center font-weight-bold<?= $bronzeClass; ?>">
                                                             <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="Bronze"><?= $bronze; ?></a>
+                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="3rd"><?= $third; ?></a>
+                                                                <?php else: ?>—<?php endif; ?>
+                                                        </td>
+                                                        <td class="text-center font-weight-bold">
+                                                            <?php if ($hasData && $fourth > 0): ?>
+                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="4th"><?= $fourth; ?></a>
+                                                                <?php else: ?>—<?php endif; ?>
+                                                        </td>
+                                                        <td class="text-center font-weight-bold">
+                                                            <?php if ($hasData && $fifth > 0): ?>
+                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="5th"><?= $fifth; ?></a>
                                                                 <?php else: ?>—<?php endif; ?>
                                                         </td>
                                                         <td class="text-center font-weight-bold">
@@ -413,18 +450,11 @@
                                                 <th>Event</th>
                                                 <th class="text-center">Group</th>
                                                 <th class="text-center">Category</th>
-                                                <th class="text-center col-gold">
-                                                    <span class="medal-icon">🥇</span>
-                                                    <span class="medal-label">Gold</span>
-                                                </th>
-                                                <th class="text-center col-silver">
-                                                    <span class="medal-icon">🥈</span>
-                                                    <span class="medal-label">Silver</span>
-                                                </th>
-                                                <th class="text-center col-bronze">
-                                                    <span class="medal-icon">🥉</span>
-                                                    <span class="medal-label">Bronze</span>
-                                                </th>
+                                                <th class="text-center col-gold">1st</th>
+                                                <th class="text-center col-silver">2nd</th>
+                                                <th class="text-center col-bronze">3rd</th>
+                                                <th class="text-center">4th</th>
+                                                <th class="text-center">5th</th>
                                             </tr>
                                         </thead>
 
@@ -432,30 +462,36 @@
                                             <?php if (!empty($eventSummaries)): ?>
                                                 <?php foreach ($eventSummaries as $ev): ?>
                                                     <?php
-                                                    $gold = (int) $ev['gold'];
-                                                    $silver = (int) $ev['silver'];
-                                                    $bronze = (int) $ev['bronze'];
-                                                    $total = $gold + $silver + $bronze;
-                                                    $goldCls = $gold > 0 ? ' col-gold' : '';
-                                                    $silverCls = $silver > 0 ? ' col-silver' : '';
-                                                    $bronzeCls = $bronze > 0 ? ' col-bronze' : '';
+                                                    $first = (int) $ev['first'];
+                                                    $second = (int) $ev['second'];
+                                                    $third = (int) $ev['third'];
+                                                    $fourth = (int) ($ev['fourth'] ?? 0);
+                                                    $fifth = (int) ($ev['fifth'] ?? 0);
+                                                    $total = $first + $second + $third + $fourth + $fifth;
+                                                    $goldCls = $first > 0 ? ' col-gold' : '';
+                                                    $silverCls = $second > 0 ? ' col-silver' : '';
+                                                    $bronzeCls = $third > 0 ? ' col-bronze' : '';
                                                     $rowCls = $total > 0 ? ' class="has-medal-row"' : '';
-                                                    $goldTeams = !empty($ev['gold_teams']) ? implode(', ', $ev['gold_teams']) : '—';
-                                                    $silverTeams = !empty($ev['silver_teams']) ? implode(', ', $ev['silver_teams']) : '—';
-                                                    $bronzeTeams = !empty($ev['bronze_teams']) ? implode(', ', $ev['bronze_teams']) : '—';
+                                                    $firstTeams = !empty($ev['first_teams']) ? implode(', ', $ev['first_teams']) : '—';
+                                                    $secondTeams = !empty($ev['second_teams']) ? implode(', ', $ev['second_teams']) : '—';
+                                                    $thirdTeams = !empty($ev['third_teams']) ? implode(', ', $ev['third_teams']) : '—';
+                                                    $fourthTeams = !empty($ev['fourth_teams']) ? implode(', ', $ev['fourth_teams']) : '—';
+                                                    $fifthTeams = !empty($ev['fifth_teams']) ? implode(', ', $ev['fifth_teams']) : '—';
                                                     ?>
                                                     <tr<?= $rowCls; ?>>
                                                         <td><?= htmlspecialchars($ev['event_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="text-center"><?= htmlspecialchars($ev['event_group'], ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="text-center"><?= htmlspecialchars($ev['category'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= htmlspecialchars($goldTeams, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= htmlspecialchars($silverTeams, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= htmlspecialchars($bronzeTeams, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                        </tr>
+                                                        <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= htmlspecialchars($firstTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= htmlspecialchars($secondTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= htmlspecialchars($thirdTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="text-center font-weight-bold"><?= htmlspecialchars($fourth > 0 ? $fourthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="text-center font-weight-bold"><?= htmlspecialchars($fifth > 0 ? $fifthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                    </tr>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <tr class="no-results-row">
-                                                        <td colspan="6" class="text-center py-4 text-muted">
+                                                        <td colspan="8" class="text-center py-4 text-muted">
                                                             No events with posted results yet.
                                                         </td>
                                                     </tr>
@@ -469,8 +505,8 @@
                             <div class="winners-table-wrapper mt-3" id="medalBreakdownPanel" style="display:none;">
                                 <div class="winners-toolbar">
                                     <div class="winners-toolbar-left">
-                                        <h5 class="winners-heading mb-0">Medal Breakdown</h5>
-                                        <p class="winners-subtext mb-0">All events with medals (sorted Gold → Bronze).</p>
+                                        <h5 class="winners-heading mb-0">Placement Breakdown</h5>
+                                        <p class="winners-subtext mb-0">All events with placements (1st → 5th).</p>
                                     </div>
                                     <div class="winners-actions">
                                         <button class="btn btn-sm btn-light" id="hideMedalBreakdown">Hide</button>
@@ -484,7 +520,7 @@
                                                 <th class="text-center">Group</th>
                                                 <th class="text-center">Category</th>
                                                 <th>Winner</th>
-                                                <th class="text-center">Medal</th>
+                                                <th class="text-center">Placement</th>
                                                 <th>Team</th>
                                             </tr>
                                         </thead>
@@ -493,9 +529,10 @@
                                                 <?php foreach ($winnersSorted as $w): ?>
                                                     <?php
                                                     $medal = $w->medal ?? 'Silver';
+                                                    $placement = $placementLabel($medal);
                                                     $chipClass = 'chip-silver';
-                                                    if ($medal === 'Gold') $chipClass = 'chip-gold';
-                                                    elseif ($medal === 'Bronze') $chipClass = 'chip-bronze';
+                                                    if ($placement === '1st') $chipClass = 'chip-gold';
+                                                    elseif ($placement === '3rd') $chipClass = 'chip-bronze';
                                                     $fullName = '';
                                                     if (!empty($w->full_name)) {
                                                         $fullName = $w->full_name;
@@ -511,7 +548,7 @@
                                                         <td class="text-center"><?= htmlspecialchars($w->category ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td><?= htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="text-center">
-                                                            <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($medal, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                            <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?></span>
                                                         </td>
                                                         <td>
                                                             <div class="d-flex align-items-center" style="gap:8px;">
@@ -554,9 +591,9 @@
                                         </p>
                                     </div>
                                     <div class="winners-actions">
-                                        <div class="filter-chip filter-chip-primary medal-filter" data-medal="Gold">Gold: <?= $teamGold; ?></div>
-                                        <div class="filter-chip filter-chip-accent medal-filter" data-medal="Silver">Silver: <?= $teamSilver; ?></div>
-                                        <div class="filter-chip filter-chip-muted medal-filter" data-medal="Bronze">Bronze: <?= $teamBronze; ?></div>
+                                        <div class="filter-chip filter-chip-primary medal-filter" data-medal="1st">1st: <?= $teamGold; ?></div>
+                                        <div class="filter-chip filter-chip-accent medal-filter" data-medal="2nd">2nd: <?= $teamSilver; ?></div>
+                                        <div class="filter-chip filter-chip-muted medal-filter" data-medal="3rd">3rd: <?= $teamBronze; ?></div>
                                         <div class="filter-chip" id="clearMedalFilter" style="cursor:pointer;">Show All</div>
                                         <a class="btn btn-sm btn-light" href="<?= $backUrl; ?>">← Back to all teams</a>
                                     </div>
@@ -569,7 +606,7 @@
                                                 <th class="text-center">Group</th>
                                                 <th class="text-center">Category</th>
                                                 <th>Name</th>
-                                                <th class="text-center">Medal</th>
+                                                <th class="text-center">Placement</th>
                                                 <!-- School/Coach removed per request -->
                                             </tr>
                                         </thead>
@@ -578,9 +615,10 @@
                                                 <?php foreach ($winners as $w): ?>
                                                     <?php
                                                     $medal = isset($w->medal) ? $w->medal : 'Silver';
+                                                    $placement = $placementLabel($medal);
                                                     $chipClass = 'chip-silver';
-                                                    if ($medal === 'Gold') $chipClass = 'chip-gold';
-                                                    elseif ($medal === 'Bronze') $chipClass = 'chip-bronze';
+                                                    if ($placement === '1st') $chipClass = 'chip-gold';
+                                                    elseif ($placement === '3rd') $chipClass = 'chip-bronze';
                                                     $fullName = '';
                                                     if (!empty($w->full_name)) {
                                                         $fullName = $w->full_name;
@@ -589,7 +627,7 @@
                                                         $fullName = implode(' ', $fullNameParts);
                                                     }
                                                     ?>
-                                                    <tr data-medal="<?= htmlspecialchars($medal, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <tr data-medal="<?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?>">
                                                         <td class="align-middle">
                                                             <span><?= htmlspecialchars($w->event_name ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
                                                         </td>
@@ -597,7 +635,7 @@
                                                         <td class="align-middle text-center"><?= htmlspecialchars($w->category ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="align-middle"><?= htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="align-middle text-center">
-                                                            <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($medal, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                            <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?></span>
                                                         </td>
                                                     </tr>
                                                 <?php endforeach; ?>
@@ -717,18 +755,11 @@
                                 <thead>
                                     <tr>
                                         <th>Team</th>
-                                        <th class="text-center col-gold">
-                                            <span class="medal-icon">🥇</span>
-                                            <span class="medal-label">Gold</span>
-                                        </th>
-                                        <th class="text-center col-silver">
-                                            <span class="medal-icon">🥈</span>
-                                            <span class="medal-label">Silver</span>
-                                        </th>
-                                        <th class="text-center col-bronze">
-                                            <span class="medal-icon">🥉</span>
-                                            <span class="medal-label">Bronze</span>
-                                        </th>
+                                        <th class="text-center col-gold">1st</th>
+                                        <th class="text-center col-silver">2nd</th>
+                                        <th class="text-center col-bronze">3rd</th>
+                                        <th class="text-center">4th</th>
+                                        <th class="text-center">5th</th>
                                         <th class="text-center">Total</th>
                                         <th class="text-right">Action</th>
                                     </tr>
@@ -745,9 +776,15 @@
                                         $filterUrl = $baseUrl . '?municipality=' . urlencode($mName) . $groupQuery;
                                         ?>
                                         <?php
-                                        $goldCls = ($hasData && (int)$stats->gold > 0) ? ' col-gold' : '';
-                                        $silverCls = ($hasData && (int)$stats->silver > 0) ? ' col-silver' : '';
-                                        $bronzeCls = ($hasData && (int)$stats->bronze > 0) ? ' col-bronze' : '';
+                                        $first = $stats ? $getCount($stats, array('first', 'gold')) : 0;
+                                        $second = $stats ? $getCount($stats, array('second', 'silver')) : 0;
+                                        $third = $stats ? $getCount($stats, array('third', 'bronze')) : 0;
+                                        $fourth = $stats ? $getCount($stats, array('fourth')) : 0;
+                                        $fifth = $stats ? $getCount($stats, array('fifth')) : 0;
+                                        $totalRow = $first + $second + $third + $fourth + $fifth;
+                                        $goldCls = ($hasData && $first > 0) ? ' col-gold' : '';
+                                        $silverCls = ($hasData && $second > 0) ? ' col-silver' : '';
+                                        $bronzeCls = ($hasData && $third > 0) ? ' col-bronze' : '';
                                         ?>
                                         <tr>
                                             <td class="align-middle">
@@ -758,10 +795,12 @@
                                                     <span><?= htmlspecialchars($mName, ENT_QUOTES, 'UTF-8'); ?></span>
                                                 </div>
                                             </td>
-                                            <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= $hasData ? (int) $stats->gold : '—'; ?></td>
-                                            <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= $hasData ? (int) $stats->silver : '—'; ?></td>
-                                            <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= $hasData ? (int) $stats->bronze : '—'; ?></td>
-                                            <td class="text-center"><?= $hasData ? (int) $stats->total_medals : '—'; ?></td>
+                                            <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= $hasData ? $first : '—'; ?></td>
+                                            <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= $hasData ? $second : '—'; ?></td>
+                                            <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= $hasData ? $third : '—'; ?></td>
+                                            <td class="text-center font-weight-bold"><?= $hasData && $fourth > 0 ? $fourth : '—'; ?></td>
+                                            <td class="text-center font-weight-bold"><?= $hasData && $fifth > 0 ? $fifth : '—'; ?></td>
+                                            <td class="text-center"><?= $hasData ? $totalRow : '—'; ?></td>
                                             <td class="text-right">
                                                 <?php if ($hasData): ?>
                                                     <a href="<?= $filterUrl; ?>" class="btn btn-sm btn-outline-primary">
@@ -805,43 +844,42 @@
                                             <th>Event</th>
                                             <th class="text-center">Group</th>
                                             <th class="text-center">Category</th>
-                                            <th class="text-center col-gold">
-                                                <span class="medal-icon">🥇</span>
-                                                <span class="medal-label">Gold</span>
-                                            </th>
-                                            <th class="text-center col-silver">
-                                                <span class="medal-icon">🥈</span>
-                                                <span class="medal-label">Silver</span>
-                                            </th>
-                                            <th class="text-center col-bronze">
-                                                <span class="medal-icon">🥉</span>
-                                                <span class="medal-label">Bronze</span>
-                                            </th>
+                                            <th class="text-center col-gold">1st</th>
+                                            <th class="text-center col-silver">2nd</th>
+                                            <th class="text-center col-bronze">3rd</th>
+                                            <th class="text-center">4th</th>
+                                            <th class="text-center">5th</th>
                                         </tr>
                                     </thead>
 
                                     <tbody>
                                         <?php foreach ($eventSummaries as $ev): ?>
                                             <?php
-                                            $gold = (int) $ev['gold'];
-                                            $silver = (int) $ev['silver'];
-                                            $bronze = (int) $ev['bronze'];
-                                            $total = $gold + $silver + $bronze;
-                                            $goldCls = $gold > 0 ? ' col-gold' : '';
-                                            $silverCls = $silver > 0 ? ' col-silver' : '';
-                                            $bronzeCls = $bronze > 0 ? ' col-bronze' : '';
+                                            $first = (int) $ev['first'];
+                                            $second = (int) $ev['second'];
+                                            $third = (int) $ev['third'];
+                                            $fourth = (int) ($ev['fourth'] ?? 0);
+                                            $fifth = (int) ($ev['fifth'] ?? 0);
+                                            $total = $first + $second + $third + $fourth + $fifth;
+                                            $goldCls = $first > 0 ? ' col-gold' : '';
+                                            $silverCls = $second > 0 ? ' col-silver' : '';
+                                            $bronzeCls = $third > 0 ? ' col-bronze' : '';
                                             $rowCls = $total > 0 ? ' class="has-medal-row"' : '';
-                                            $goldTeams = !empty($ev['gold_teams']) ? implode(', ', $ev['gold_teams']) : '—';
-                                            $silverTeams = !empty($ev['silver_teams']) ? implode(', ', $ev['silver_teams']) : '—';
-                                            $bronzeTeams = !empty($ev['bronze_teams']) ? implode(', ', $ev['bronze_teams']) : '—';
+                                            $firstTeams = !empty($ev['first_teams']) ? implode(', ', $ev['first_teams']) : '—';
+                                            $secondTeams = !empty($ev['second_teams']) ? implode(', ', $ev['second_teams']) : '—';
+                                            $thirdTeams = !empty($ev['third_teams']) ? implode(', ', $ev['third_teams']) : '—';
+                                            $fourthTeams = !empty($ev['fourth_teams']) ? implode(', ', $ev['fourth_teams']) : '—';
+                                            $fifthTeams = !empty($ev['fifth_teams']) ? implode(', ', $ev['fifth_teams']) : '—';
                                             ?>
                                             <tr<?= $rowCls; ?>>
                                                 <td><?= htmlspecialchars($ev['event_name'], ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td class="text-center"><?= htmlspecialchars($ev['event_group'], ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td class="text-center"><?= htmlspecialchars($ev['category'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                                <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= htmlspecialchars($goldTeams, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= htmlspecialchars($silverTeams, ENT_QUOTES, 'UTF-8'); ?></td>
-                                                <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= htmlspecialchars($bronzeTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="text-center font-weight-bold<?= $goldCls; ?>"><?= htmlspecialchars($firstTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="text-center font-weight-bold<?= $silverCls; ?>"><?= htmlspecialchars($secondTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= htmlspecialchars($thirdTeams, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="text-center font-weight-bold"><?= htmlspecialchars($fourth > 0 ? $fourthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td class="text-center font-weight-bold"><?= htmlspecialchars($fifth > 0 ? $fifthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                     </tbody>
@@ -906,6 +944,26 @@
 
                 // You can pass 'en-PH' or leave undefined
                 return d.toLocaleString('en-PH', options);
+            }
+
+            function toPlacement(medal) {
+                var m = (medal || '').toString().trim().toLowerCase();
+                if (m === 'gold' || m === '1st' || m === 'first') return '1st';
+                if (m === 'silver' || m === '2nd' || m === 'second') return '2nd';
+                if (m === 'bronze' || m === '3rd' || m === 'third') return '3rd';
+                if (m === '4th' || m === 'fourth') return '4th';
+                if (m === '5th' || m === 'fifth') return '5th';
+                return medal || '';
+            }
+
+            function placementKey(medal) {
+                var p = toPlacement(medal);
+                if (p === '1st') return 'first';
+                if (p === '2nd') return 'second';
+                if (p === '3rd') return 'third';
+                if (p === '4th') return 'fourth';
+                if (p === '5th') return 'fifth';
+                return 'other';
             }
 
 
@@ -1080,10 +1138,10 @@
 
                     var rows = '';
                     sortedWinners.forEach(function(row) {
-                        var medal = row.medal || 'Silver';
+                        var placement = toPlacement(row.medal || '2nd');
                         var chipClass = 'chip-silver';
-                        if (medal === 'Gold') chipClass = 'chip-gold';
-                        else if (medal === 'Bronze') chipClass = 'chip-bronze';
+                        if (placement === '1st') chipClass = 'chip-gold';
+                        else if (placement === '3rd') chipClass = 'chip-bronze';
 
                         rows += '<tr>' +
                             '<td class="align-middle">' + $('<div>').text(row.event_name || '').html() + '</td>' +
@@ -1092,7 +1150,7 @@
                             '<td class="align-middle">' + $('<div>').text(row.full_name || '').html() + '</td>' +
                             '<td class="align-middle text-center">' +
                             '<span class="chip-medal ' + chipClass + '">' +
-                            $('<div>').text(medal).html() +
+                            $('<div>').text(placement).html() +
                             '</span>' +
                             '</td>' +
                             '<td class="align-middle">' + $('<div>').text(row.municipality || '').html() + '</td>' +
@@ -1133,7 +1191,7 @@
 
             function renderEventSummaries(rows) {
                 if (!rows || rows.length === 0) {
-                    return '<tr class="no-results-row"><td colspan="6" class="text-center py-4 text-muted">No events with posted results yet.</td></tr>';
+                    return '<tr class="no-results-row"><td colspan="8" class="text-center py-4 text-muted">No events with posted results yet.</td></tr>';
                 }
                 var summary = {};
                 rows.forEach(function(r) {
@@ -1161,13 +1219,17 @@
                             event_name: r.event_name || 'Unknown Event',
                             event_group: r.event_group || '-',
                             category: r.category || '-',
-                            gold: 0,
-                            silver: 0,
-                            bronze: 0,
+                            first: 0,
+                            second: 0,
+                            third: 0,
+                            fourth: 0,
+                            fifth: 0,
                             teams: [],
-                            goldTeams: [],
-                            silverTeams: [],
-                            bronzeTeams: []
+                            firstTeams: [],
+                            secondTeams: [],
+                            thirdTeams: [],
+                            fourthTeams: [],
+                            fifthTeams: []
                         };
                     }
 
@@ -1175,21 +1237,13 @@
                     if (teamName && summary[key].teams.indexOf(teamName) === -1) {
                         summary[key].teams.push(teamName);
                     }
-                    var medal = (r.medal || '').toLowerCase();
-                    if (medal === 'gold') {
-                        summary[key].gold++;
-                        if (teamName && summary[key].goldTeams.indexOf(teamName) === -1) {
-                            summary[key].goldTeams.push(teamName);
-                        }
-                    } else if (medal === 'silver') {
-                        summary[key].silver++;
-                        if (teamName && summary[key].silverTeams.indexOf(teamName) === -1) {
-                            summary[key].silverTeams.push(teamName);
-                        }
-                    } else if (medal === 'bronze') {
-                        summary[key].bronze++;
-                        if (teamName && summary[key].bronzeTeams.indexOf(teamName) === -1) {
-                            summary[key].bronzeTeams.push(teamName);
+                    var place = placementKey(r.medal);
+                    var buckets = ['first', 'second', 'third', 'fourth', 'fifth'];
+                    if (buckets.indexOf(place) !== -1) {
+                        summary[key][place]++;
+                        var teamBucket = place + 'Teams';
+                        if (teamName && summary[key][teamBucket].indexOf(teamName) === -1) {
+                            summary[key][teamBucket].push(teamName);
                         }
                     }
                 });
@@ -1198,24 +1252,28 @@
                 });
                 var html = '';
                 list.forEach(function(ev) {
-                    var total = ev.gold + ev.silver + ev.bronze;
+                    var total = ev.first + ev.second + ev.third + ev.fourth + ev.fifth;
                     var rowCls = total > 0 ? ' class="has-medal-row"' : '';
-                    var goldCls = ev.gold > 0 ? ' col-gold' : '';
-                    var silverCls = ev.silver > 0 ? ' col-silver' : '';
-                    var bronzeCls = ev.bronze > 0 ? ' col-bronze' : '';
-                    var goldTeams = (ev.goldTeams && ev.goldTeams.length) ? ev.goldTeams.join(', ') : '—';
-                    var silverTeams = (ev.silverTeams && ev.silverTeams.length) ? ev.silverTeams.join(', ') : '—';
-                    var bronzeTeams = (ev.bronzeTeams && ev.bronzeTeams.length) ? ev.bronzeTeams.join(', ') : '—';
+                    var goldCls = ev.first > 0 ? ' col-gold' : '';
+                    var silverCls = ev.second > 0 ? ' col-silver' : '';
+                    var bronzeCls = ev.third > 0 ? ' col-bronze' : '';
+                    var firstTeams = (ev.firstTeams && ev.firstTeams.length) ? ev.firstTeams.join(', ') : '—';
+                    var secondTeams = (ev.secondTeams && ev.secondTeams.length) ? ev.secondTeams.join(', ') : '—';
+                    var thirdTeams = (ev.thirdTeams && ev.thirdTeams.length) ? ev.thirdTeams.join(', ') : '—';
+                    var fourthTeams = (ev.fourthTeams && ev.fourthTeams.length) ? ev.fourthTeams.join(', ') : '—';
+                    var fifthTeams = (ev.fifthTeams && ev.fifthTeams.length) ? ev.fifthTeams.join(', ') : '—';
                     html += '<tr' + rowCls + '>' +
                         '<td>' + $('<div>').text(ev.event_name).html() + '</td>' +
                         '<td class="text-center">' + $('<div>').text(ev.event_group).html() + '</td>' +
                         '<td class="text-center">' + $('<div>').text(ev.category).html() + '</td>' +
-                        '<td class="text-center font-weight-bold' + goldCls + '">' + $('<div>').text(goldTeams).html() + '</td>' +
-                        '<td class="text-center font-weight-bold' + silverCls + '">' + $('<div>').text(silverTeams).html() + '</td>' +
-                        '<td class="text-center font-weight-bold' + bronzeCls + '">' + $('<div>').text(bronzeTeams).html() + '</td>' +
+                        '<td class="text-center font-weight-bold' + goldCls + '">' + $('<div>').text(firstTeams).html() + '</td>' +
+                        '<td class="text-center font-weight-bold' + silverCls + '">' + $('<div>').text(secondTeams).html() + '</td>' +
+                        '<td class="text-center font-weight-bold' + bronzeCls + '">' + $('<div>').text(thirdTeams).html() + '</td>' +
+                        '<td class="text-center font-weight-bold">' + $('<div>').text(ev.fourth > 0 ? fourthTeams : '—').html() + '</td>' +
+                        '<td class="text-center font-weight-bold">' + $('<div>').text(ev.fifth > 0 ? fifthTeams : '—').html() + '</td>' +
                         '</tr>';
                 });
-                return html || '<tr class="no-results-row"><td colspan="6" class="text-center py-4 text-muted">No events with posted results yet.</td></tr>';
+                return html || '<tr class="no-results-row"><td colspan="8" class="text-center py-4 text-muted">No events with posted results yet.</td></tr>';
             }
 
             function refreshResults() {
@@ -1233,14 +1291,16 @@
 
                         // (No stat-events here anymore)
 
-                        var gold = o.gold || 0;
-                        var silver = o.silver || 0;
-                        var bronze = o.bronze || 0;
-                        var total = o.total_medals || (gold + silver + bronze);
+                        var first = o.first || o.gold || 0;
+                        var second = o.second || o.silver || 0;
+                        var third = o.third || o.bronze || 0;
+                        var fourth = o.fourth || 0;
+                        var fifth = o.fifth || 0;
+                        var total = o.total_medals || (first + second + third + fourth + fifth);
 
                         $('#stat-total-medals').text(total);
                         $('#stat-medal-breakdown').text(
-                            '(' + gold + 'G · ' + silver + 'S · ' + bronze + 'B)'
+                            '(' + first + '×1st · ' + second + '×2nd · ' + third + '×3rd · ' + fourth + '×4th · ' + fifth + '×5th)'
                         );
                         $('#stat-last-update').text(formatDateTime(o.last_update));
                     }

@@ -262,6 +262,15 @@
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
                     $flash_success = $this->session->flashdata('success');
                     $flash_error   = $this->session->flashdata('error');
+                    $placementLabel = function ($medal) {
+                        $m = strtolower(trim((string) $medal));
+                        if ($m === 'gold' || $m === '1st' || $m === 'first') return '1st';
+                        if ($m === 'silver' || $m === '2nd' || $m === 'second') return '2nd';
+                        if ($m === 'bronze' || $m === '3rd' || $m === 'third') return '3rd';
+                        if ($m === '4th' || $m === 'fourth') return '4th';
+                        if ($m === '5th' || $m === 'fifth') return '5th';
+                        return ucfirst($medal);
+                    };
                     ?>
 
                     <div class="row">
@@ -355,7 +364,7 @@
                                                         <th>Group</th>
                                                         <th>Category</th>
                                                         <th>Winner</th>
-                                                        <th class="text-center">Medal</th>
+                                                        <th class="text-center">Placement</th>
                                                         <th>Team</th>
                                                         <th>School</th>
                                                         <th>Coach</th>
@@ -366,15 +375,21 @@
                                                 <tbody>
                                                     <?php foreach ($recent_winners as $row): ?>
                                                         <?php
+                                                        $placementText = $placementLabel($row->medal);
                                                         $badgeClass = 'badge-silver';
-                                                        $medalOrder = 2;
-                                                        if ($row->medal === 'Gold') {
+                                                        if ($placementText === '1st') {
                                                             $badgeClass = 'badge-gold';
-                                                            $medalOrder = 3;
-                                                        } elseif ($row->medal === 'Bronze') {
+                                                        } elseif ($placementText === '3rd') {
                                                             $badgeClass = 'badge-bronze';
-                                                            $medalOrder = 1;
                                                         }
+                                                        $orderMap = array(
+                                                            '5th' => 1,
+                                                            '4th' => 2,
+                                                            '3rd' => 3,
+                                                            '2nd' => 4,
+                                                            '1st' => 5
+                                                        );
+                                                        $medalOrder = isset($orderMap[$placementText]) ? $orderMap[$placementText] : 0;
                                                         $createdAt = $row->created_at ?? '';
                                                         $createdSort = $createdAt ? strtotime($createdAt) : 0;
                                                         ?>
@@ -384,7 +399,7 @@
                                                             <td><?= htmlspecialchars($row->category ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                                             <td><?= htmlspecialchars($row->full_name, ENT_QUOTES, 'UTF-8'); ?></td>
                                                             <td class="text-center" data-order="<?= $medalOrder; ?>">
-                                                                <span class="badge badge-medal <?= $badgeClass; ?>"><?= htmlspecialchars($row->medal, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                                <span class="badge badge-medal <?= $badgeClass; ?>"><?= htmlspecialchars($placementText, ENT_QUOTES, 'UTF-8'); ?></span>
                                                             </td>
                                                             <td><?= htmlspecialchars($row->municipality, ENT_QUOTES, 'UTF-8'); ?></td>
                                                             <td><?= htmlspecialchars($row->school ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
@@ -722,7 +737,7 @@
                     </div>
 
                     <div class="alert alert-info py-2">
-                        Add Gold, Silver, and Bronze winners in one go. Empty rows are skipped.
+                        Add placements (1st–5th) in one go. Empty rows are skipped.
                     </div>
 
                     <div id="municipalityOptionsTemplate" class="d-none">
@@ -738,11 +753,11 @@
                     <div class="medal-section" data-medal="Gold">
                         <div class="medal-header mb-2">
                             <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-gold mr-2">Gold</span>
-                                <span class="text-muted small">Winners for this medal</span>
+                                <span class="badge badge-medal badge-gold mr-2">1st Place</span>
+                                <span class="text-muted small">Winners for this placement</span>
                             </div>
                             <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Gold">
-                                <i class="mdi mdi-plus"></i> Add Gold winner
+                                <i class="mdi mdi-plus"></i> Add 1st place
                             </button>
                         </div>
                         <div class="medal-rows" id="goldRows"></div>
@@ -751,11 +766,11 @@
                     <div class="medal-section" data-medal="Silver">
                         <div class="medal-header mb-2">
                             <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-silver mr-2">Silver</span>
-                                <span class="text-muted small">Add one or more Silver winners</span>
+                                <span class="badge badge-medal badge-silver mr-2">2nd Place</span>
+                                <span class="text-muted small">Add one or more 2nd placers</span>
                             </div>
                             <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Silver">
-                                <i class="mdi mdi-plus"></i> Add Silver winner
+                                <i class="mdi mdi-plus"></i> Add 2nd place
                             </button>
                         </div>
                         <div class="medal-rows" id="silverRows"></div>
@@ -764,14 +779,40 @@
                     <div class="medal-section mb-0" data-medal="Bronze">
                         <div class="medal-header mb-2">
                             <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-bronze mr-2">Bronze</span>
-                                <span class="text-muted small">Add any Bronze winners</span>
+                                <span class="badge badge-medal badge-bronze mr-2">3rd Place</span>
+                                <span class="text-muted small">Add any 3rd placers</span>
                             </div>
                             <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Bronze">
-                                <i class="mdi mdi-plus"></i> Add Bronze winner
+                                <i class="mdi mdi-plus"></i> Add 3rd place
                             </button>
                         </div>
                         <div class="medal-rows" id="bronzeRows"></div>
+                    </div>
+
+                    <div class="medal-section mb-0" data-medal="4th">
+                        <div class="medal-header mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge badge-medal badge-silver mr-2">4th Place</span>
+                                <span class="text-muted small">Optional: capture 4th place finishers</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="4th">
+                                <i class="mdi mdi-plus"></i> Add 4th place
+                            </button>
+                        </div>
+                        <div class="medal-rows" id="fourthRows"></div>
+                    </div>
+
+                    <div class="medal-section mb-0" data-medal="5th">
+                        <div class="medal-header mb-2">
+                            <div class="d-flex align-items-center">
+                                <span class="badge badge-medal badge-silver mr-2">5th Place</span>
+                                <span class="text-muted small">Optional: capture 5th place finishers</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="5th">
+                                <i class="mdi mdi-plus"></i> Add 5th place
+                            </button>
+                        </div>
+                        <div class="medal-rows" id="fifthRows"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -910,7 +951,9 @@
             var medalContainers = {
                 Gold: $('#goldRows'),
                 Silver: $('#silverRows'),
-                Bronze: $('#bronzeRows')
+                Bronze: $('#bronzeRows'),
+                '4th': $('#fourthRows'),
+                '5th': $('#fifthRows')
             };
             var municipalityOptionsHtml = $('#municipalityOptionsTemplate').html();
             var rowCounter = 0;
@@ -1023,10 +1066,19 @@
                 rowCounter += 1;
                 var index = rowCounter;
                 var badgeClass = 'badge-bronze';
+                var badgeLabel = medal;
                 if (medal === 'Gold') {
                     badgeClass = 'badge-gold';
+                    badgeLabel = '1st Place';
                 } else if (medal === 'Silver') {
                     badgeClass = 'badge-silver';
+                    badgeLabel = '2nd Place';
+                } else if (medal === 'Bronze') {
+                    badgeClass = 'badge-bronze';
+                    badgeLabel = '3rd Place';
+                } else if (medal === '4th' || medal === '5th') {
+                    badgeClass = 'badge-silver';
+                    badgeLabel = medal + ' Place';
                 }
 
                 var entryNumber = medalContainers[medal].find('.medal-row').length + 1;
@@ -1035,7 +1087,7 @@
                     '<div class="card-body pb-2">' +
                     '<div class="d-flex align-items-center justify-content-between mb-2">' +
                     '<div class="d-flex align-items-center">' +
-                    '<span class="badge badge-medal ' + badgeClass + ' mr-2">' + medal + '</span>' +
+                    '<span class="badge badge-medal ' + badgeClass + ' mr-2">' + badgeLabel + '</span>' +
                     '<small class="text-muted">Entry ' + entryNumber + '</small>' +
                     '</div>' +
                     '<button type="button" class="btn btn-link text-danger p-0 btn-remove-row">Remove</button>' +
