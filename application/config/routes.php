@@ -15,6 +15,17 @@ $route['journal'] = 'provincial/index';
 // catch-all for provincial routes when prefixed with /journal
 $route['journal/(:any)'] = 'provincial/$1';
 
+// When the app is already hosted under /journal/, allow slugless shortcuts
+$route['standings'] = 'provincial/index';
+$route['admin'] = 'provincial/admin';
+$route['teams'] = 'provincial/municipalities';
+$route['technical'] = 'provincial/technical';
+$route['para'] = 'provincial/para';
+$route['events'] = 'provincial/events';
+$route['report'] = 'provincial/report';
+$route['live_results'] = 'provincial/live_results';
+$route['update-settings'] = 'provincial/update_meet_settings';
+
 // keep these for admin login
 $route['login']      = 'login';
 $route['login/auth'] = 'login/auth';

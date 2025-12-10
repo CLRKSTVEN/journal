@@ -17,7 +17,7 @@ class Login extends CI_Controller
     public function index()
     {
         if ($this->session->userdata('logged_in')) {
-            redirect($this->appSlug . '/admin');
+            redirect(app_url('admin'));
             return;
         }
 
@@ -62,7 +62,7 @@ class Login extends CI_Controller
         ));
 
         $this->session->set_flashdata('success', 'Welcome back, ' . ($user->fName ?: $user->username) . '!');
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     public function logout()

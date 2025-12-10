@@ -18,7 +18,7 @@ class Page extends CI_Controller
     public function admin()
     {
         // Reuse the journalism admin console to keep a single source of truth
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     public function change_password()

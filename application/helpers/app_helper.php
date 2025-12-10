@@ -42,7 +42,16 @@ if (!function_exists('app_url')) {
     {
         $slug = app_slug();
         $trimmed = ltrim((string) $uri, '/');
-        return site_url($slug . ($trimmed !== '' ? '/' . $trimmed : ''));
+        $basePath = trim((string) parse_url(base_url(), PHP_URL_PATH), '/');
+        $slugTrim = trim($slug, '/');
+        $baseHasSlug = ($slugTrim !== '' && stripos($basePath, $slugTrim) !== false);
+
+        // If base_url already contains the slug (e.g., app is in /journal), don't prepend again.
+        if ($baseHasSlug) {
+            return site_url($trimmed);
+        }
+
+        return site_url($slugTrim . ($trimmed !== '' ? '/' . $trimmed : ''));
     }
 }
 
@@ -54,6 +63,14 @@ if (!function_exists('app_base_url')) {
     {
         $slug = app_slug();
         $trimmed = ltrim((string) $uri, '/');
-        return base_url($slug . ($trimmed !== '' ? '/' . $trimmed : ''));
+        $basePath = trim((string) parse_url(base_url(), PHP_URL_PATH), '/');
+        $slugTrim = trim($slug, '/');
+        $baseHasSlug = ($slugTrim !== '' && stripos($basePath, $slugTrim) !== false);
+
+        if ($baseHasSlug) {
+            return base_url($trimmed);
+        }
+
+        return base_url($slugTrim . ($trimmed !== '' ? '/' . $trimmed : ''));
     }
 }

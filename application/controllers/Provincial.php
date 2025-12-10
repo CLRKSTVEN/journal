@@ -130,13 +130,13 @@ class Provincial extends CI_Controller
             if ($this->form_validation->run()) {
                 if (!empty($rowErrors)) {
                     $this->session->set_flashdata('error', implode('<br>', $rowErrors));
-                    redirect($this->appSlug . '/admin');
+                    redirect(app_url('admin'));
                     return;
                 }
 
                 if (empty($winnerRows)) {
                     $this->session->set_flashdata('error', 'Please add at least one winner.');
-                    redirect($this->appSlug . '/admin');
+                    redirect(app_url('admin'));
                     return;
                 }
 
@@ -145,7 +145,7 @@ class Provincial extends CI_Controller
 
                 if (!$event) {
                     $this->session->set_flashdata('error', 'Selected event could not be found. Please pick a valid event.');
-                    redirect($this->appSlug . '/admin');
+                    redirect(app_url('admin'));
                     return;
                 }
 
@@ -243,7 +243,7 @@ class Provincial extends CI_Controller
                     $this->session->set_flashdata('error', implode(' ', $messageParts));
                 }
 
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
         }
@@ -339,7 +339,7 @@ class Provincial extends CI_Controller
             $event = $this->Events_model->get_event_details($eventId);
             if (!$event) {
                 $this->session->set_flashdata('error', 'Selected event not found.');
-                redirect($this->appSlug . '/technical');
+                redirect(app_url('technical'));
                 return;
             }
 
@@ -378,7 +378,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/technical');
+        redirect(app_url('technical'));
     }
 
     public function update_technical()
@@ -396,7 +396,7 @@ class Provincial extends CI_Controller
             $existing = $this->Technical_model->get($id);
             if (!$existing) {
                 $this->session->set_flashdata('error', 'Entry not found.');
-                redirect($this->appSlug . '/technical');
+                redirect(app_url('technical'));
                 return;
             }
 
@@ -404,7 +404,7 @@ class Provincial extends CI_Controller
             $event = $this->Events_model->get_event_details($eventId);
             if (!$event) {
                 $this->session->set_flashdata('error', 'Selected event not found.');
-                redirect($this->appSlug . '/technical');
+                redirect(app_url('technical'));
                 return;
             }
 
@@ -427,7 +427,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/technical');
+        redirect(app_url('technical'));
     }
 
     public function delete_technical()
@@ -446,7 +446,7 @@ class Provincial extends CI_Controller
             }
         }
 
-        redirect($this->appSlug . '/technical');
+        redirect(app_url('technical'));
     }
 
     /**
@@ -476,7 +476,7 @@ class Provincial extends CI_Controller
                 $upload = $this->handle_logo_upload('logo');
                 if ($upload['error']) {
                     $this->session->set_flashdata('error', $upload['message']);
-                    redirect($this->appSlug . '/teams');
+                    redirect(app_url('teams'));
                     return;
                 }
 
@@ -490,7 +490,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/teams');
+        redirect(app_url('teams'));
     }
 
     public function update_municipality()
@@ -505,27 +505,27 @@ class Provincial extends CI_Controller
 
             if (!$this->Address_model->city_exists($current)) {
                 $this->session->set_flashdata('error', 'Municipality not found.');
-                redirect($this->appSlug . '/teams');
+                redirect(app_url('teams'));
                 return;
             }
 
             if ($this->Address_model->city_exists($city) && strcasecmp($current, $city) !== 0) {
                 $this->session->set_flashdata('error', 'Another entry already uses that municipality.');
-                redirect($this->appSlug . '/teams');
+                redirect(app_url('teams'));
                 return;
             }
 
             $upload = $this->handle_logo_upload('logo');
             if ($upload['error']) {
                 $this->session->set_flashdata('error', $upload['message']);
-                redirect($this->appSlug . '/teams');
+                redirect(app_url('teams'));
                 return;
             }
 
             // If name unchanged and no logo uploaded, nothing to do
             if ($current === $city && empty($upload['file'])) {
                 $this->session->set_flashdata('success', 'No changes to save.');
-                redirect($this->appSlug . '/teams');
+                redirect(app_url('teams'));
                 return;
             }
 
@@ -535,7 +535,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/teams');
+        redirect(app_url('teams'));
     }
 
     public function delete_municipality()
@@ -556,7 +556,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/teams');
+        redirect(app_url('teams'));
     }
 
     public function update_winner()
@@ -585,19 +585,19 @@ class Provincial extends CI_Controller
         if ($this->form_validation->run()) {
             if (!empty($rowErrors)) {
                 $this->session->set_flashdata('error', implode('<br>', $rowErrors));
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
             if (empty($winnerRows)) {
                 $this->session->set_flashdata('error', 'Please enter the winner details to update.');
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
             if (count($winnerRows) > 1) {
                 $this->session->set_flashdata('error', 'Please edit one winner at a time.');
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
@@ -607,14 +607,14 @@ class Provincial extends CI_Controller
             $winner = $this->Winners_model->get_winner($winnerId);
             if (!$winner) {
                 $this->session->set_flashdata('error', 'Winner not found.');
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
             $event = $this->Events_model->get_event_details($eventId);
             if (!$event) {
                 $this->session->set_flashdata('error', 'Selected event could not be found. Please pick a valid event.');
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
@@ -658,7 +658,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     public function delete_winner($winner_id = null)
@@ -666,20 +666,20 @@ class Provincial extends CI_Controller
         $id = (int) $winner_id;
         if ($id <= 0) {
             $this->session->set_flashdata('error', 'Invalid winner.');
-            redirect($this->appSlug . '/admin');
+            redirect(app_url('admin'));
             return;
         }
 
         $existing = $this->Winners_model->get_winner($id);
         if (!$existing) {
             $this->session->set_flashdata('error', 'Winner not found.');
-            redirect($this->appSlug . '/admin');
+            redirect(app_url('admin'));
             return;
         }
 
         $this->Winners_model->delete_winner($id);
         $this->session->set_flashdata('success', 'Winner deleted.');
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     // CRUD: create category
@@ -695,7 +695,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('category_error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     // CRUD: update category
@@ -711,7 +711,7 @@ class Provincial extends CI_Controller
             $existing = $this->Events_model->get_category($id);
             if (!$existing) {
                 $this->session->set_flashdata('category_error', 'Category not found.');
-                redirect($this->appSlug . '/admin');
+                redirect(app_url('admin'));
                 return;
             }
 
@@ -721,7 +721,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('category_error', validation_errors('', ''));
         }
 
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     // CRUD: delete category
@@ -730,20 +730,20 @@ class Provincial extends CI_Controller
         $id = (int) $category_id;
         if ($id <= 0) {
             $this->session->set_flashdata('error', 'Invalid category.');
-            redirect($this->appSlug . '/admin');
+            redirect(app_url('admin'));
             return;
         }
 
         $existing = $this->Events_model->get_category($id);
         if (!$existing) {
             $this->session->set_flashdata('error', 'Category not found.');
-            redirect($this->appSlug . '/admin');
+            redirect(app_url('admin'));
             return;
         }
 
         $this->Events_model->delete_category($id);
         $this->session->set_flashdata('success', 'Category deleted.');
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     // CRUD: create event
@@ -972,7 +972,7 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('success', 'Meet header updated.');
         }
 
-        redirect($this->appSlug . '/admin');
+        redirect(app_url('admin'));
     }
 
     /**
@@ -992,7 +992,7 @@ class Provincial extends CI_Controller
      */
     private function redirect_back($default = null)
     {
-        $fallback = $default ?: ($this->appSlug . '/admin');
+        $fallback = $default ?: (app_url('admin'));
         $target = trim((string) $this->input->post('return_to', TRUE));
         if ($target === '' || stripos($target, 'http://') === 0 || stripos($target, 'https://') === 0 || strpos($target, '//') === 0) {
             $target = $fallback;
