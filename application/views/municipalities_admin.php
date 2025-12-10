@@ -66,7 +66,8 @@
 
                     <?php
                     $municipalities = isset($municipalities) ? $municipalities : array();
-                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : 'Provincial Meet';
+                    $appSlug = app_slug();
+                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
                     ?>
 
@@ -163,7 +164,7 @@
                                                                     <i class="mdi mdi-pencil" aria-hidden="true"></i>
                                                                     <span class="sr-only">Edit team</span>
                                                                 </button>
-                                                                <form class="d-inline form-delete-municipality" action="<?= site_url('provincial/delete_municipality'); ?>" method="post">
+                                                                <form class="d-inline form-delete-municipality" action="<?= app_url('delete_municipality'); ?>" method="post">
                                                                     <input type="hidden" name="city" value="<?= htmlspecialchars($city, ENT_QUOTES, 'UTF-8'); ?>">
                                                                     <button type="submit" class="btn btn-outline-danger btn-sm btn-icon"
                                                                         title="Delete team" data-toggle="tooltip" data-placement="top">
@@ -208,7 +209,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open_multipart('provincial/add_municipality'); ?>
+                <?= form_open_multipart($appSlug . '/add_municipality'); ?>
                 <div class="modal-body">
                     <div class="form-group">
                         <label> Team </label>
@@ -239,7 +240,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open_multipart('provincial/update_municipality'); ?>
+                <?= form_open_multipart($appSlug . '/update_municipality'); ?>
                 <div class="modal-body">
                     <input type="hidden" name="current_city" id="editCurrentCity">
                     <div class="form-group">

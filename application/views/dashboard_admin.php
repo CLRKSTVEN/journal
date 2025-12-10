@@ -257,7 +257,8 @@
                     $event_groups_list = isset($event_groups) ? $event_groups : array();
                     $events_list = isset($events) ? $events : array();
                     $municipalities_list = isset($municipalities) ? $municipalities : array();
-                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : 'Provincial Meet';
+                    $appSlug = app_slug();
+                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
                     $flash_success = $this->session->flashdata('success');
                     $flash_error   = $this->session->flashdata('error');
@@ -278,7 +279,7 @@
                                         <i class="mdi mdi-plus"></i> Add Winners
                                     </button>
                                     <!-- Secondary action -->
-                                    <a href="<?= site_url('provincial/standings'); ?>" class="btn btn-outline-primary btn-sm">
+                                    <a href="<?= app_url('standings'); ?>" class="btn btn-outline-primary btn-sm">
                                         <i class="mdi mdi-trophy"></i> View Standings
                                     </a>
 
@@ -415,7 +416,7 @@
                                                                         <i class="mdi mdi-pencil"></i>
                                                                     </button>
 
-                                                                    <form action="<?= site_url('provincial/delete_winner/' . (int) $row->id); ?>"
+                                                                    <form action="<?= app_url('delete_winner/' . (int) $row->id); ?>"
                                                                         method="post" onsubmit="return confirm('Delete this winner?');">
                                                                         <button type="submit"
                                                                             class="btn btn-outline-danger btn-sm btn-icon"
@@ -524,7 +525,7 @@
                                                                         data-category-name="<?= htmlspecialchars($event->category_name ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                                                         <i class="mdi mdi-pencil"></i>
                                                                     </button>
-                                                                    <form action="<?= site_url('provincial/delete_event/' . (int) $event->event_id); ?>"
+                                                                    <form action="<?= app_url('delete_event/' . (int) $event->event_id); ?>"
                                                                         method="post"
                                                                         class="confirm-submit"
                                                                         data-confirm="Delete this event?"
@@ -570,7 +571,7 @@
 
     <!-- Meet Header Modal -->
     <?php
-    $meet_title = isset($meet->meet_title) ? $meet->meet_title : 'Provincial Meet';
+    $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
     $subtitle   = isset($meet->subtitle)
         ? $meet->subtitle
@@ -585,7 +586,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/update_meet_settings'); ?>
+                <?= form_open($appSlug . '/update_meet_settings'); ?>
                 <div class="modal-body">
                     <div class="form-group mb-2">
                         <label>Meet Title</label>
@@ -627,7 +628,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/add_event', array('id' => 'eventForm')); ?>
+                <?= form_open($appSlug . '/add_event', array('id' => 'eventForm')); ?>
                 <div class="modal-body">
                     <input type="hidden" name="return_to" value="<?= uri_string(); ?>">
                     <input type="hidden" name="event_id" id="eventIdField" value="">
@@ -672,7 +673,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/admin', array('id' => 'winnerForm')); ?>
+                <?= form_open($appSlug . '/admin', array('id' => 'winnerForm')); ?>
                 <div class="modal-body">
                     <input type="hidden" name="winner_id" id="winnerIdField" value="">
                     <div class="form-group">
@@ -794,7 +795,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/add_category'); ?>
+                <?= form_open($appSlug . '/add_category'); ?>
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Event Name</label>
@@ -820,7 +821,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/update_category'); ?>
+                <?= form_open($appSlug . '/update_category'); ?>
                 <div class="modal-body">
                     <input type="hidden" name="category_id" id="editCategoryId">
                     <div class="form-group">
@@ -865,10 +866,10 @@
                 }
             }
 
-            var createAction = "<?= site_url('provincial/admin'); ?>";
-            var updateAction = "<?= site_url('provincial/update_winner'); ?>";
-            var createEventAction = "<?= site_url('provincial/add_event'); ?>";
-            var updateEventAction = "<?= site_url('provincial/update_event'); ?>";
+            var createAction = "<?= app_url('admin'); ?>";
+            var updateAction = "<?= app_url('update_winner'); ?>";
+            var createEventAction = "<?= app_url('add_event'); ?>";
+            var updateEventAction = "<?= app_url('update_event'); ?>";
             var eventsTable = null;
             var $eventSelect = $('#eventSelect');
             var $winnerGroupSelect = $('#winnerGroupSelect');

@@ -9,6 +9,7 @@
 
         <?php
         $currentUri = trim(uri_string(), '/');
+        $appSlug = app_slug();
 
         $isActive = function ($patterns) use ($currentUri) {
             foreach ((array)$patterns as $p) {
@@ -38,32 +39,32 @@
                 </li>
 
                 <!-- Events -->
-                <li class="<?= $isActive(['provincial/events']); ?>">
-                    <a href="<?= base_url('provincial/events'); ?>" class="waves-effect">
+                <li class="<?= $isActive([$appSlug . '/events']); ?>">
+                    <a href="<?= app_url('events'); ?>" class="waves-effect">
                         <i class="mdi mdi-calendar-multiple-check"></i>
                         <span> Events </span>
                     </a>
                 </li>
 
                 <!-- Teams -->
-                <li class="<?= $isActive(['provincial/teams']); ?>">
-                    <a href="<?= base_url('provincial/teams'); ?>" class="waves-effect">
+                <li class="<?= $isActive([$appSlug . '/teams']); ?>">
+                    <a href="<?= app_url('teams'); ?>" class="waves-effect">
                         <i class="mdi mdi-city"></i>
                         <span> Teams </span>
                     </a>
                 </li>
 
                 <!-- Technical Officials -->
-                <li class="<?= $isActive(['provincial/technical']); ?>">
-                    <a href="<?= base_url('provincial/technical'); ?>" class="waves-effect">
+                <li class="<?= $isActive([$appSlug . '/technical']); ?>">
+                    <a href="<?= app_url('technical'); ?>" class="waves-effect">
                         <i class="mdi mdi-account-tie"></i>
                         <span> Technical Officials </span>
                     </a>
                 </li>
 
                 <!-- Reports -->
-                <li class="<?= $isActive(['provincial/report']); ?>">
-                    <a href="<?= base_url('provincial/report'); ?>" class="waves-effect">
+                <li class="<?= $isActive([$appSlug . '/report']); ?>">
+                    <a href="<?= app_url('report'); ?>" class="waves-effect">
                         <i class="mdi mdi-printer"></i>
                         <span> Generate Report </span>
                     </a>

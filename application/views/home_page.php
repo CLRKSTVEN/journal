@@ -202,8 +202,8 @@
                     <div class="login-card">
                         <span class="login-pill"><i class="mdi mdi-shield-account-outline"></i> Admin Access</span>
                         <div class="login-header">
-                            <h3>Provincial Meet Console</h3>
-                            <small>Sign in to manage official results and announcements.</small>
+                            <h3><?= htmlspecialchars(app_name(), ENT_QUOTES, 'UTF-8'); ?> Console</h3>
+                            <small><?= htmlspecialchars(app_tagline(), ENT_QUOTES, 'UTF-8'); ?></small>
                         </div>
 
                         <!-- Flash messages -->
@@ -235,7 +235,7 @@
                         <?php endif; ?>
 
                         <div class="meta-links">
-                            <a href="<?= site_url('provincial/standings'); ?>"><i class="mdi mdi-arrow-left"></i> Back to standings</a>
+                            <a href="<?= app_url('standings'); ?>"><i class="mdi mdi-arrow-left"></i> Back to rankings</a>
                             <a href="<?= site_url(); ?>">Home</a>
                         </div>
 

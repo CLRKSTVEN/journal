@@ -3,18 +3,21 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Login extends CI_Controller
 {
+    protected $appSlug;
+
     public function __construct()
     {
         parent::__construct();
         $this->load->library(array('form_validation', 'session'));
         $this->load->helper(array('url', 'form'));
         $this->load->database();
+        $this->appSlug = app_slug();
     }
 
     public function index()
     {
         if ($this->session->userdata('logged_in')) {
-            redirect('provincial/admin');
+            redirect($this->appSlug . '/admin');
             return;
         }
 
@@ -59,7 +62,7 @@ class Login extends CI_Controller
         ));
 
         $this->session->set_flashdata('success', 'Welcome back, ' . ($user->fName ?: $user->username) . '!');
-        redirect('provincial/admin');
+        redirect($this->appSlug . '/admin');
     }
 
     public function logout()

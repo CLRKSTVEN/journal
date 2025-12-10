@@ -3,6 +3,8 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Page extends CI_Controller
 {
+    protected $appSlug;
+
     public function __construct()
     {
         parent::__construct();
@@ -10,12 +12,13 @@ class Page extends CI_Controller
         $this->load->library(array('session', 'form_validation'));
         $this->load->helper(array('url', 'form'));
         $this->load->database();
+        $this->appSlug = app_slug();
     }
 
     public function admin()
     {
-        // Reuse the provincial admin console to keep a single source of truth
-        redirect('provincial/admin');
+        // Reuse the journalism admin console to keep a single source of truth
+        redirect($this->appSlug . '/admin');
     }
 
     public function change_password()

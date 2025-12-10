@@ -1,12 +1,13 @@
-# Provincial Meet Results
+# Journalism Rankings Hub
 
-Live provincial meet standings built on CodeIgniter. Officials can log in to encode winners, while the public landing page shows live results and medal tallies grouped by Elementary and Secondary.
+Landing page and admin console for campus journalism results, rebranded from the DepEd sports template. Officials can log in to encode winners, while the public landing page shows live rankings and medal tallies for each delegation.
 
 ## Features
-- Public landing page with animated hero, medal tallies, and filters for Elementary/Secondary
+- Public landing page with animated hero, medal tallies, and filters for Elementary/Secondary (or PARA)
 - Admin console to encode winners (event, group, category, medal, municipality) with recent-entry preview
-- Editable meet header (title, year, subtitle) shown on the landing page
+- Editable meet header (title, year, subtitle) shown on the landing page with journalism branding
 - User management (create/disable users), profile + avatar upload, and password change
+- Friendly `/journal` URLs with backwards-compatible `/provincial` routes
 
 ## Requirements
 - PHP 7.4+ (CodeIgniter 3.x)
@@ -14,14 +15,14 @@ Live provincial meet standings built on CodeIgniter. Officials can log in to enc
 - Apache with `mod_rewrite` enabled (tested with XAMPP)
 
 ## Quick start (local/XAMPP)
-1) Place the project in `htdocs/provincial` (or adjust `RewriteBase` in `.htaccess` and `base_url` in `application/config/config.php`).
-2) Create a database, e.g. `provincial_meet`.
+1) Place the project in `htdocs/journal` (or adjust `RewriteBase` in `.htaccess` and `base_url` in `application/config/config.php`).
+2) Create a database, e.g. `provincial_meet` (or reuse your existing DB).
 
 
 ## Key files
 - `application/config/config.php` – base URL, session, and clean URL settings
 - `application/config/database.php` – database credentials
-- `application/config/routes.php` – routes (`provincial` is the default controller)
+- `application/config/routes.php` – routes (`journal` alias points to the Provincial controller)
 - `.htaccess` – rewrite rules to drop `index.php`
 - `database script.txt` – bundled SQL seed for the `users` table
 

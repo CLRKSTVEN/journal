@@ -28,13 +28,14 @@
                         <!-- Header Banner -->
                         <div class="landing-header banner-hero">
                             <?php
-                            $meet_title = isset($meet->meet_title) ? $meet->meet_title : 'Provincial Meet';
+                            $appName    = app_name();
+                            $meet_title = isset($meet->meet_title) ? $meet->meet_title : $appName;
                             $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : '';
                             $activeMunicipalityHeader = isset($active_municipality) ? trim((string) $active_municipality) : '';
                             $activeMunicipalityFilter = $activeMunicipalityHeader;
                             $group = isset($active_group) ? $active_group : 'ALL';
-                            $baseLandingUrl = site_url('provincial');
-                            $paraLandingUrl = site_url('provincial/para');
+                            $baseLandingUrl = app_url();
+                            $paraLandingUrl = app_url('para');
                             $makeGroupUrl = function ($targetGroup) use ($activeMunicipalityFilter, $baseLandingUrl, $paraLandingUrl) {
                                 $params = array();
                                 if ($activeMunicipalityFilter !== '') {
@@ -50,7 +51,7 @@
                                 return $base . $query;
                             };
                             $isLoggedIn = isset($this) && isset($this->session) ? (bool)$this->session->userdata('logged_in') : false;
-                            $loginUrl   = $isLoggedIn ? site_url('provincial/admin') : site_url('login');
+                            $loginUrl   = $isLoggedIn ? app_url('admin') : site_url('login');
                             $loginText  = $isLoggedIn ? 'Admin Dashboard' : 'Login';
                             ?>
                             <?php if ($activeMunicipalityHeader === ''): ?>
@@ -352,7 +353,7 @@
                                                     $silverClass = ($silver > 0) ? ' col-silver' : '';
                                                     $bronzeClass = ($bronze > 0) ? ' col-bronze' : '';
                                                     $logo = isset($logoMap[$mName]) ? $logoMap[$mName] : '';
-                                                    $filterUrl = site_url('provincial?municipality=' . urlencode($mName) . $groupParam);
+                                                    $filterUrl = app_url() . '?municipality=' . urlencode($mName) . $groupParam;
                                                     ?>
                                                     <tr>
                                                         <td class="align-middle">
@@ -541,7 +542,7 @@
                             $teamBronze = $teamStats ? (int) $teamStats->bronze : 0;
                             $teamTotal = $teamStats ? (int) $teamStats->total_medals : 0;
                             $teamLogo = isset($logoMap[$selectedName]) ? $logoMap[$selectedName] : '';
-                            $backUrl = site_url('provincial' . ($group === 'ALL' ? '' : '?group=' . urlencode($group)));
+                            $backUrl = app_url() . ($group === 'ALL' ? '' : '?group=' . urlencode($group));
                             ?>
 
                             <div class="winners-table-wrapper mt-4" id="teamDashboardPanel">
@@ -632,7 +633,7 @@
     $tally = isset($municipality_tally) ? $municipality_tally : array();
     $allMunicipalities = isset($municipalities_all) ? $municipalities_all : array();
     $groupContext = isset($active_group) ? $active_group : 'ALL';
-    $baseUrl = ($groupContext === 'PARA') ? site_url('provincial/para') : site_url('provincial');
+    $baseUrl = ($groupContext === 'PARA') ? app_url('para') : app_url();
     $groupQuery = ($groupContext === 'Elementary' || $groupContext === 'Secondary')
         ? '&group=' . urlencode($groupContext)
         : '';
@@ -1223,7 +1224,7 @@
                 }
                 var TEAM_COUNT = <?= $teamsTotal; ?>;
 
-                $.getJSON('<?= site_url('provincial/live_results'); ?>', function(resp) {
+                $.getJSON('<?= app_url('live_results'); ?>', function(resp) {
                     if (!resp) return;
 
                     if (resp.overview) {
@@ -1344,7 +1345,7 @@
 
                     function goToMunicipality(municipality) {
                         if (!municipality) return;
-                        var baseUrl = $picker.data('base-url') || '<?= site_url('provincial'); ?>';
+                        var baseUrl = $picker.data('base-url') || '<?= app_url(); ?>';
                         var groupQuery = $picker.data('group-query') || '';
                         var url = baseUrl + '?municipality=' + encodeURIComponent(municipality) + groupQuery;
                         window.location.href = url;

@@ -54,7 +54,8 @@
                     $events = isset($events) ? $events : array();
                     $event_groups = isset($event_groups) ? $event_groups : array();
                     $event_categories = isset($event_categories) ? $event_categories : array();
-                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : 'Provincial Meet';
+                    $appSlug = app_slug();
+                    $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
                     ?>
 
@@ -141,7 +142,7 @@
                                                                     <i class="mdi mdi-pencil" aria-hidden="true"></i>
                                                                     <span class="sr-only">Edit official</span>
                                                                 </button>
-                                                                <form class="d-inline" action="<?= site_url('provincial/delete_technical'); ?>" method="post"
+                                                                <form class="d-inline" action="<?= app_url('delete_technical'); ?>" method="post"
                                                                     onsubmit="return confirm('Delete this entry?');">
                                                                     <input type="hidden" name="id" value="<?= (int) $row->id; ?>">
                                                                     <button type="submit" class="btn btn-outline-danger btn-sm btn-icon"
@@ -187,7 +188,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/add_technical'); ?>
+                <?= form_open($appSlug . '/add_technical'); ?>
                 <div class="modal-body">
                    <div class="form-group">
                        <label>Event</label>
@@ -274,7 +275,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/update_technical'); ?>
+                <?= form_open($appSlug . '/update_technical'); ?>
                 <div class="modal-body">
                     <input type="hidden" name="id" id="editTechId">
                     <div class="form-group">

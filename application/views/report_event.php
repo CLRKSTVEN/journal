@@ -155,7 +155,7 @@
 
                     <div class="card mb-3">
                         <div class="card-body">
-                            <form method="get" action="<?= site_url('provincial/report'); ?>" class="filter-form">
+                            <form method="get" action="<?= app_url('report'); ?>" class="filter-form">
                                 <div class="form-group mb-0">
                                     <label class="mr-2 mb-0 text-muted small">Event</label>
                                     <?php

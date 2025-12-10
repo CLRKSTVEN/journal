@@ -84,6 +84,7 @@
                     $event_categories_list = isset($event_categories) ? $event_categories : array();
                     $event_groups_list     = isset($event_groups) ? $event_groups : array();
                     $events_list           = isset($events) ? $events : array();
+                    $appSlug               = app_slug();
                     ?>
 
                     <div class="row align-items-center mb-3">
@@ -195,7 +196,7 @@
                                                                         data-category-name="<?= htmlspecialchars($event->category_name ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                                                         <i class="mdi mdi-pencil"></i>
                                                                     </button>
-                                                                    <form action="<?= site_url('provincial/delete_event/' . (int)$event->event_id); ?>"
+                                                                    <form action="<?= app_url('delete_event/' . (int) $event->event_id); ?>"
                                                                         method="post" onsubmit="return confirm('Delete this event?');" class="m-0 p-0">
                                                                         <input type="hidden" name="return_to" value="<?= uri_string(); ?>">
                                                                         <button type="submit"
@@ -246,7 +247,7 @@
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <?= form_open('provincial/add_event', array('id' => 'eventForm')); ?>
+                <?= form_open($appSlug . '/add_event', array('id' => 'eventForm')); ?>
                 <div class="modal-body">
                     <input type="hidden" name="return_to" value="<?= uri_string(); ?>">
                     <input type="hidden" name="event_id" id="eventIdField" value="">
@@ -328,8 +329,8 @@
                 });
             }
 
-            var createEventAction = "<?= site_url('provincial/add_event'); ?>";
-            var updateEventAction = "<?= site_url('provincial/update_event'); ?>";
+            var createEventAction = "<?= app_url('add_event'); ?>";
+            var updateEventAction = "<?= app_url('update_event'); ?>";
             var eventsTable = null;
             var $eventForm = $('#eventForm');
             var $eventModalLabel = $('#eventModalLabel');

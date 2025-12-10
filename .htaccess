@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Adjust the base path if you move this folder (current folder name is "journal")
+RewriteBase /journal/
+
+# Send everything except real files/directories to CodeIgniter
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
