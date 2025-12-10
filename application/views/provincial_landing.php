@@ -436,8 +436,8 @@
                             <div class="winners-table-wrapper mt-3" id="eventsRecordedPanel" style="display:none;">
                                 <div class="winners-toolbar">
                                     <div class="winners-toolbar-left">
-                                        <h5 class="winners-heading mb-0">Events with Results</h5>
-                                        <p class="winners-subtext mb-0">All events that already have encoded medals.</p>
+                                        <h5 class="winners-heading mb-0">Posted Events</h5>
+                                        <p class="winners-subtext mb-0">Events that already have recorded placements.</p>
                                     </div>
                                     <div class="winners-actions">
                                         <button class="btn btn-sm btn-light" id="hideEventsPanel">Hide</button>
@@ -505,8 +505,8 @@
                             <div class="winners-table-wrapper mt-3" id="medalBreakdownPanel" style="display:none;">
                                 <div class="winners-toolbar">
                                     <div class="winners-toolbar-left">
-                                        <h5 class="winners-heading mb-0">Placement Breakdown</h5>
-                                        <p class="winners-subtext mb-0">All events with placements (1st → 5th).</p>
+                                        <h5 class="winners-heading mb-0">Placement Overview</h5>
+                                        <p class="winners-subtext mb-0">All events with posted placements (1st–5th).</p>
                                     </div>
                                     <div class="winners-actions">
                                         <button class="btn btn-sm btn-light" id="hideMedalBreakdown">Hide</button>
