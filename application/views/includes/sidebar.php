@@ -34,7 +34,7 @@
                 <li class="<?= $isActive(['Page/admin']); ?>">
                     <a href="<?= base_url('Page/admin'); ?>" class="waves-effect">
                         <i class="bi bi-house-door"></i>
-                        <span> Journal Dashboard </span>
+                        <span>Dashboard </span>
                     </a>
                 </li>
 

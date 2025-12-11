@@ -11,6 +11,7 @@ $route['journal/logout'] = 'login/logout';
 $route['journal/home_page'] = 'login';
 $route['journal/home_page.php'] = 'login';
 $route['journal/update-settings'] = 'provincial/update_meet_settings';
+$route['journal/delete_winner/(:num)'] = 'provincial/delete_winner/$1';
 $route['journal'] = 'provincial/index';
 // catch-all for provincial routes when prefixed with /journal
 $route['journal/(:any)'] = 'provincial/$1';
@@ -25,6 +26,7 @@ $route['events'] = 'provincial/events';
 $route['report'] = 'provincial/report';
 $route['live_results'] = 'provincial/live_results';
 $route['update-settings'] = 'provincial/update_meet_settings';
+$route['delete_winner/(:num)'] = 'provincial/delete_winner/$1';
 
 // keep these for admin login
 $route['login']      = 'login';

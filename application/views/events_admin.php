@@ -193,6 +193,8 @@
                                                                         data-id="<?= (int)$event->event_id; ?>"
                                                                         data-name="<?= htmlspecialchars($event->event_name, ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-group-id="<?= $event->group_id !== null ? (int)$event->group_id : ''; ?>"
+                                                                        data-group-name="<?= htmlspecialchars($event->group_name ?? '', ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-category-id="<?= $event->category_id !== null ? (int)$event->category_id : ''; ?>"
                                                                         data-category-name="<?= htmlspecialchars($event->category_name ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                                                                         <i class="mdi mdi-pencil"></i>
                                                                     </button>
@@ -251,24 +253,71 @@
                 <div class="modal-body">
                     <input type="hidden" name="return_to" value="<?= uri_string(); ?>">
                     <input type="hidden" name="event_id" id="eventIdField" value="">
+                    <input type="hidden" name="event_name" id="eventName">
                     <div class="form-group">
                         <label>Event Name</label>
-                        <input type="text" name="event_name" id="eventName" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Group</label>
-                        <select name="group_id" id="eventGroup" class="form-control" required>
-                            <option value="">-- Select Group --</option>
-                            <?php foreach ($event_groups_list as $group): ?>
-                                <option value="<?= (int)$group->group_id; ?>">
-                                    <?= htmlspecialchars($group->group_name, ENT_QUOTES, 'UTF-8'); ?>
+                        <input type="text" id="eventSearch" class="form-control mb-2" placeholder="Enter event name (or pick below)">
+                        <select id="eventSelect" class="form-control mb-2">
+                            <option value="">-- Select Event --</option>
+                            <?php
+                            $events_list_sorted = is_array($events_list) ? $events_list : array();
+                            if (!empty($events_list_sorted)) {
+                                usort($events_list_sorted, function ($a, $b) {
+                                    return strcasecmp($a->event_name ?? '', $b->event_name ?? '');
+                                });
+                            }
+                            $eventSeen = array();
+                            foreach ($events_list_sorted as $event):
+                                $eventName = trim($event->event_name);
+                                $labelKey = strtolower($eventName);
+                                if (isset($eventSeen[$labelKey])) {
+                                    continue; // avoid duplicate event names
+                                }
+                                $eventSeen[$labelKey] = true;
+                            ?>
+                                <option value="<?= (int)$event->event_id; ?>"
+                                    data-group-id="<?= $event->group_id !== null ? (int)$event->group_id : ''; ?>"
+                                    data-category-name="<?= htmlspecialchars($event->category_name ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?= htmlspecialchars($eventName, ENT_QUOTES, 'UTF-8'); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <small class="form-text text-muted">Type the event name; if it is not in the list we’ll save exactly what you type.</small>
                     </div>
                     <div class="form-group">
-                        <label>Category</label>
-                        <input type="text" name="category_name" id="eventCategory" class="form-control" placeholder="Type a category name">
+                        <label class="mb-0">Group</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <small class="text-muted">Click Type or Select to switch</small>
+                            <button type="button" class="btn btn-link btn-sm p-0 toggle-group-mode" data-mode="custom">Type</button>
+                        </div>
+                        <select name="group_id" id="eventGroupSelect" class="form-control">
+                            <option value="">-- Select Group --</option>
+                            <?php foreach ($event_groups_list as $group): ?>
+                                <?php $groupLabel = trim($group->group_name ?? '') !== '' ? $group->group_name : ''; ?>
+                                <option value="<?= (int)$group->group_id; ?>">
+                                    <?= htmlspecialchars($groupLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="text" name="group_custom" id="eventGroupCustom" class="form-control d-none mt-1" placeholder="Enter group name">
+                    </div>
+                    <div class="form-group">
+                        <label class="mb-0">Category</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <small class="text-muted">Click Type or Select to switch</small>
+                            <button type="button" class="btn btn-link btn-sm p-0 toggle-category-mode" data-mode="custom">Type</button>
+                        </div>
+                        <select name="category_id" id="eventCategorySelect" class="form-control">
+                            <option value="">-- Select Category --</option>
+                            <?php foreach ($event_categories_list as $category): ?>
+                                <?php $categoryLabel = trim($category->category_name ?? '') !== '' ? $category->category_name : ''; ?>
+                                <?php if ($categoryLabel === '') continue; ?>
+                                <option value="<?= (int)$category->category_id; ?>">
+                                    <?= htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="text" name="category_custom" id="eventCategoryCustom" class="form-control d-none mt-1" placeholder="Enter category name">
                         <small class="form-text text-muted">Leave blank if the event is uncategorized.</small>
                     </div>
                 </div>
@@ -337,8 +386,126 @@
             var $eventSubmitBtn = $('#eventSubmitBtn');
             var $eventIdField = $('#eventIdField');
             var $eventNameInput = $('#eventName');
-            var $eventGroupSelect = $('#eventGroup');
-            var $eventCategorySelect = $('#eventCategory');
+            var $eventSearch = $('#eventSearch');
+            var $eventSelect = $('#eventSelect');
+            var $eventGroupSelect = $('#eventGroupSelect');
+            var $eventCategorySelect = $('#eventCategorySelect');
+            var $groupInput = $('#eventGroupCustom');
+            var $categoryInput = $('#eventCategoryCustom');
+            var $groupModeToggle = $('.toggle-group-mode');
+            var $categoryModeToggle = $('.toggle-category-mode');
+            var eventsMeta = <?= json_encode(array_map(function ($ev) {
+                                    return array(
+                                        'id' => (int)$ev->event_id,
+                                        'name' => $ev->event_name,
+                                        'group_id' => isset($ev->group_id) ? (int)$ev->group_id : null,
+                                        'group_name' => $ev->group_name ?? '',
+                                        'category_id' => isset($ev->category_id) ? (int)$ev->category_id : null,
+                                        'category_name' => $ev->category_name ?? '',
+                                    );
+                                }, $events_list ?? array())); ?>;
+            eventsMeta.sort(function(a, b) {
+                return (a.name || '').localeCompare(b.name || '');
+            });
+
+            function applyGroupCategoryFromSelect() {
+                var val = $eventSelect.val() || '';
+                if (!val) return;
+                var meta = eventsMeta.find(function(ev) {
+                    return String(ev.id) === String(val);
+                });
+                if (meta) {
+                    if (meta.group_id) {
+                        $eventGroupSelect.val(String(meta.group_id));
+                        setGroupMode('select');
+                    } else if (meta.group_name) {
+                        $groupInput.val(meta.group_name);
+                        setGroupMode('custom');
+                    }
+                    if (meta.category_id) {
+                        $eventCategorySelect.val(String(meta.category_id));
+                        setCategoryMode('select');
+                    } else if (meta.category_name) {
+                        // Try to match category name; if not present, switch to custom
+                        var matched = false;
+                        $eventCategorySelect.find('option').each(function() {
+                            if ($.trim($(this).text()).toLowerCase() === meta.category_name.toLowerCase()) {
+                                matched = true;
+                                $eventCategorySelect.val($(this).val());
+                            }
+                        });
+                        if (matched) {
+                            setCategoryMode('select');
+                        } else {
+                            $categoryInput.val(meta.category_name);
+                            setCategoryMode('custom');
+                        }
+                    }
+                }
+            }
+
+            function filterEventOptions(term) {
+                term = (term || '').toString().toLowerCase().trim();
+                var matchedId = '';
+                $eventSelect.find('option').each(function() {
+                    var $opt = $(this);
+                    if ($opt.val() === '') {
+                        $opt.show();
+                        return;
+                    }
+                    var text = ($opt.text() || '').toLowerCase();
+                    var match = term === '' || text.indexOf(term) !== -1;
+                    $opt.toggle(match);
+                    if (match && text === term) {
+                        matchedId = $opt.val();
+                    }
+                });
+
+                if (matchedId) {
+                    $eventSelect.val(matchedId);
+                    var selectedText = $eventSelect.find('option:selected').text() || '';
+                    $eventSearch.val(selectedText);
+                    $eventNameInput.val(selectedText);
+                    applyGroupCategoryFromSelect();
+                } else {
+                    if (term === '') {
+                        $eventSelect.val('');
+                    }
+                    $eventNameInput.val($eventSearch.val());
+                }
+            }
+
+            function setGroupMode(mode) {
+                var useCustom = mode === 'custom';
+                $groupInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $eventGroupSelect.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+                if (useCustom) {
+                    if ($groupInput.val().trim() === '' && $eventGroupSelect.val()) {
+                        $groupInput.val($eventGroupSelect.find('option:selected').text());
+                    }
+                    $eventGroupSelect.val('');
+                    $groupModeToggle.text('Select').data('mode', 'select');
+                } else {
+                    $groupInput.val('');
+                    $groupModeToggle.text('Type').data('mode', 'custom');
+                }
+            }
+
+            function setCategoryMode(mode) {
+                var useCustom = mode === 'custom';
+                $categoryInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $eventCategorySelect.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+                if (useCustom) {
+                    if ($categoryInput.val().trim() === '' && $eventCategorySelect.val()) {
+                        $categoryInput.val($eventCategorySelect.find('option:selected').text());
+                    }
+                    $eventCategorySelect.val('');
+                    $categoryModeToggle.text('Select').data('mode', 'select');
+                } else {
+                    $categoryInput.val('');
+                    $categoryModeToggle.text('Type').data('mode', 'custom');
+                }
+            }
 
             function setEventCreateMode() {
                 $eventForm.attr('action', createEventAction);
@@ -346,8 +513,13 @@
                 $eventSubmitBtn.text('Save Event');
                 $eventIdField.val('');
                 $eventNameInput.val('');
+                $eventSearch.val('');
+                $eventSelect.val('');
                 $eventGroupSelect.val('');
                 $eventCategorySelect.val('');
+                filterEventOptions('');
+                setGroupMode('select');
+                setCategoryMode('select');
             }
 
             function setEventEditMode(data) {
@@ -356,12 +528,48 @@
                 $eventSubmitBtn.text('Update Event');
                 $eventIdField.val(data.id || '');
                 $eventNameInput.val(data.name || '');
+                $eventSearch.val(data.name || '');
+                $eventSelect.val(data.id || '');
+                filterEventOptions(data.name || '');
                 $eventGroupSelect.val(data.group_id || '');
-                $eventCategorySelect.val(data.category_name || '');
+                $eventCategorySelect.val(data.category_id || '');
+                setGroupMode('select');
+                setCategoryMode('select');
+                if (!$eventGroupSelect.val() && data.group_name) {
+                    $groupInput.val(data.group_name);
+                    setGroupMode('custom');
+                }
+                // If category doesn't match an option but exists, switch to custom
+                if (data.category_name && !$eventCategorySelect.val()) {
+                    $categoryInput.val(data.category_name);
+                    setCategoryMode('custom');
+                }
             }
 
             $('#openAddEventModal').on('click', function() {
                 setEventCreateMode();
+            });
+
+            $eventSearch.on('input', function() {
+                filterEventOptions($(this).val());
+                $eventNameInput.val($(this).val());
+            });
+
+            $eventSelect.on('change', function() {
+                var text = $eventSelect.find('option:selected').text() || '';
+                $eventSearch.val(text);
+                if (text) {
+                    $eventNameInput.val(text);
+                }
+                applyGroupCategoryFromSelect();
+            });
+
+            $groupModeToggle.on('click', function() {
+                setGroupMode($(this).data('mode'));
+            });
+
+            $categoryModeToggle.on('click', function() {
+                setCategoryMode($(this).data('mode'));
             });
 
             $('.btn-edit-event').on('click', function() {
@@ -370,6 +578,8 @@
                     id: $btn.data('id'),
                     name: $btn.data('name'),
                     group_id: ($btn.data('group-id') || '').toString(),
+                    group_name: ($btn.data('group-name') || '').toString(),
+                    category_id: ($btn.data('category-id') || '').toString(),
                     category_name: ($btn.data('category-name') || '').toString()
                 };
                 setEventEditMode(data);

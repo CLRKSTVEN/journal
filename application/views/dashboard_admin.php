@@ -260,6 +260,7 @@
                     $appSlug = app_slug();
                     $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
+                    $brand_title = app_name();
                     $flash_success = $this->session->flashdata('success');
                     $flash_error   = $this->session->flashdata('error');
                     $placementLabel = function ($medal) {
@@ -278,7 +279,7 @@
                             <div class="page-title-box d-flex align-items-center justify-content-between flex-wrap">
                                 <div class="mb-2">
                                     <h4 class="page-title mb-0">
-                                        <?= htmlspecialchars($meet_title . ' ' . $meet_year, ENT_QUOTES, 'UTF-8'); ?> – Admin
+                                        <?= htmlspecialchars($brand_title . ' ' . $meet_year, ENT_QUOTES, 'UTF-8'); ?> – Admin
                                     </h4>
                                 </div>
                                 <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
@@ -693,7 +694,9 @@
                     <input type="hidden" name="winner_id" id="winnerIdField" value="">
                     <div class="form-group">
                         <label>Event <span class="text-danger">*</span></label>
-                        <select name="event_id" id="eventSelect" class="form-control" required>
+                        <input type="text" id="eventSearch" class="form-control mb-2" placeholder="Enter event name (or pick below)">
+                        <input type="hidden" name="event_name_custom" id="eventNameCustom">
+                        <select name="event_id" id="eventSelect" class="form-control">
                             <option value="">-- Select Event --</option>
                             <?php
                             $events_list_sorted = is_array($events_list) ? $events_list : array();
@@ -718,21 +721,31 @@
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text text-muted">Select the event; pick the matching group and category below.</small>
+                        <small class="form-text text-muted">Type the event name; if it’s not in the dropdown, we’ll keep what you typed.</small>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group col-md-6">
-                            <label>Group</label>
-                            <select name="group_id" id="winnerGroupSelect" class="form-control">
+                            <label class="mb-0">Group</label>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted">Click Type or Select to switch</small>
+                                <button type="button" class="btn btn-link btn-sm p-0 toggle-group-mode" data-mode="custom">Type</button>
+                            </div>
+                            <select name="group_id" id="winnerGroupSelect" class="form-control group-select">
                                 <option value="">-- Select Group --</option>
                             </select>
+                            <input type="text" name="group_custom" id="winnerGroupCustom" class="form-control d-none mt-1 group-input" placeholder="Enter group name">
                         </div>
                         <div class="form-group col-md-6">
-                            <label>Category</label>
-                            <select name="category_id" id="winnerCategorySelect" class="form-control">
+                            <label class="mb-0">Category</label>
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <small class="text-muted">Click Type or Select to switch</small>
+                                <button type="button" class="btn btn-link btn-sm p-0 toggle-category-mode" data-mode="custom">Type</button>
+                            </div>
+                            <select name="category_id" id="winnerCategorySelect" class="form-control category-select">
                                 <option value="">-- Select Category --</option>
                             </select>
+                            <input type="text" name="category_custom" id="winnerCategoryCustom" class="form-control d-none mt-1 category-input" placeholder="Enter category name">
                         </div>
                     </div>
 
@@ -925,6 +938,14 @@
             var $eventNameInput = $('#eventName');
             var $eventGroupSelect = $('#eventGroup');
             var $eventCategorySelect = $('#eventCategory');
+            var $eventSearch = $('#eventSearch');
+            var $eventNameCustom = $('#eventNameCustom');
+            var $groupInput = $('#winnerGroupCustom');
+            var $groupSelectInput = $('#winnerGroupSelect');
+            var $categoryInput = $('#winnerCategoryCustom');
+            var $categorySelectInput = $('#winnerCategorySelect');
+            var $groupModeToggle = $('.toggle-group-mode');
+            var $categoryModeToggle = $('.toggle-category-mode');
             var eventsMeta = <?= json_encode(array_map(function ($ev) {
                                     return array(
                                         'id' => (int)$ev->event_id,
@@ -1171,6 +1192,77 @@
                 }
             }
 
+            // Event search/type filter: syncs text input with select options
+            function filterEvents(term) {
+                term = (term || '').toString().toLowerCase().trim();
+                var matchedId = null;
+                var matchedLabel = '';
+                $eventSelect.find('option').each(function() {
+                    var $opt = $(this);
+                    if ($opt.val() === '') return;
+                    var text = ($opt.text() || '').toLowerCase();
+                    var match = term === '' || text.indexOf(term) !== -1;
+                    $opt.toggle(match);
+                    if (match && text === term) {
+                        matchedId = $opt.val();
+                        matchedLabel = $opt.text();
+                    }
+                });
+                if (matchedId) {
+                    $eventSelect.val(matchedId);
+                    $eventNameCustom.val('');
+                } else if (term === '') {
+                    $eventSelect.val('');
+                    $eventNameCustom.val('');
+                } else {
+                    // If only one visible option remains, select it
+                    var $visible = $eventSelect.find('option:visible');
+                    if ($visible.length === 2) { // includes placeholder
+                        var val = $visible.last().val();
+                        if (val) {
+                            $eventSelect.val(val);
+                            $eventNameCustom.val('');
+                        }
+                    }
+                    if (!$eventSelect.val()) {
+                        $eventNameCustom.val(term);
+                    }
+                }
+                rebuildGroupAndCategoryOptions($eventSelect.val());
+            }
+
+            function setGroupMode(mode) {
+                var useCustom = mode === 'custom';
+                $groupInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $groupSelectInput.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+
+                if (useCustom) {
+                    if ($groupInput.val().trim() === '' && $groupSelectInput.val()) {
+                        $groupInput.val($groupSelectInput.find('option:selected').text());
+                    }
+                    $groupSelectInput.val('');
+                    $groupModeToggle.text('Select').data('mode', 'select');
+                } else {
+                    $groupModeToggle.text('Type').data('mode', 'custom');
+                }
+            }
+
+            function setCategoryMode(mode) {
+                var useCustom = mode === 'custom';
+                $categoryInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $categorySelectInput.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+
+                if (useCustom) {
+                    if ($categoryInput.val().trim() === '' && $categorySelectInput.val()) {
+                        $categoryInput.val($categorySelectInput.find('option:selected').text());
+                    }
+                    $categorySelectInput.val('');
+                    $categoryModeToggle.text('Select').data('mode', 'select');
+                } else {
+                    $categoryModeToggle.text('Type').data('mode', 'custom');
+                }
+            }
+
             $(document).on('click', '.btn-add-medal', function() {
                 var medal = $(this).data('medal');
                 addWinnerRow(medal);
@@ -1180,28 +1272,70 @@
                 $(this).closest('.medal-row').remove();
             });
 
+            $groupModeToggle.on('click', function() {
+                setGroupMode($(this).data('mode'));
+            });
+
+            $categoryModeToggle.on('click', function() {
+                setCategoryMode($(this).data('mode'));
+            });
+
+            // Sync search box with select
+            $eventSearch.on('input', function() {
+                filterEvents($(this).val());
+            });
+
+            // Keep search text aligned with selected option
+            $eventSelect.on('change', function() {
+                var text = $eventSelect.find('option:selected').text() || '';
+                if (text && text !== '-- Select Event --') {
+                    $eventSearch.val(text);
+                    $eventNameCustom.val('');
+                }
+                rebuildGroupAndCategoryOptions($eventSelect.val());
+            });
+
             function setCreateMode() {
                 isEditMode = false;
                 $winnerForm.attr('action', createAction);
                 $('#winnerIdField').val('');
                 $eventSelect.val('').trigger('change');
-                $winnerGroupSelect.empty().append('<option value="">-- Select Group --</option>');
-                $winnerCategorySelect.empty().append('<option value="">-- Select Category --</option>');
+                $eventSearch.val('');
+                $eventNameCustom.val('');
+                $groupInput.val('');
+                $categoryInput.val('');
+                $winnerGroupSelect.val('');
+                $winnerCategorySelect.val('');
                 $winnerSubmitBtn.html('<i class="mdi mdi-content-save-outline"></i> Save Winners');
                 $winnerModalLabel.text('Add Winners');
                 seedDefaultRows();
+                setGroupMode('select');
+                setCategoryMode('select');
             }
 
             function setEditMode(data) {
                 isEditMode = true;
                 $winnerForm.attr('action', updateAction);
                 $('#winnerIdField').val(data.id || '');
+                setGroupMode('select');
+                setCategoryMode('select');
+                $eventNameCustom.val('');
 
                 var eventId = data.event_id ? String(data.event_id) : '';
                 var eventName = (data.event_name || '').toString();
 
                 // 1) Select event (by ID if possible, else by name, else create custom option)
                 if (eventId && $eventSelect.find('option[value="' + eventId + '"]').length) {
+                    $eventSelect.val(eventId);
+                } else if (eventId) {
+                    // Keep original ID but add a temporary option if the dropdown no longer has it
+                    var fallbackLabel = eventName || ('Event #' + eventId);
+                    $eventSelect.append(
+                        $('<option>', {
+                            value: eventId,
+                            text: fallbackLabel
+                        })
+                    );
                     $eventSelect.val(eventId);
                 } else if (eventName) {
                     var matchedId = '';
@@ -1213,19 +1347,16 @@
                     if (matchedId) {
                         $eventSelect.val(matchedId);
                     } else {
-                        // create a temp option so the original event name still shows
-                        var tempValue = 'custom_' + Date.now();
-                        $eventSelect.append(
-                            $('<option>', {
-                                value: tempValue,
-                                text: eventName
-                            })
-                        );
-                        $eventSelect.val(tempValue);
+                        // Treat as typed custom event
+                        $eventSelect.val('');
+                        $eventNameCustom.val(eventName);
                     }
                 } else {
                     $eventSelect.val('');
                 }
+
+                var selectedLabel = $eventSelect.find('option:selected').text() || eventName || '';
+                $eventSearch.val(selectedLabel);
 
                 // 2) Rebuild Group + Category options based on selected event
                 rebuildGroupAndCategoryOptions($eventSelect.val());
@@ -1298,11 +1429,6 @@
 
             $('#openWinnerModal').on('click', function() {
                 setCreateMode();
-            });
-
-            $eventSelect.on('change', function() {
-                var val = $(this).val() || '';
-                rebuildGroupAndCategoryOptions(val);
             });
 
             $('#openAddEventModal').on('click', function() {

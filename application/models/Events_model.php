@@ -65,6 +65,35 @@ class Events_model extends CI_Model
             ->row();
     }
 
+    public function get_group_by_name($name)
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        return $this->db
+            ->where('LOWER(group_name)', strtolower($name))
+            ->get('event_groups')
+            ->row();
+    }
+
+    public function ensure_group($name)
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        $existing = $this->get_group_by_name($name);
+        if ($existing) {
+            return (int) $existing->group_id;
+        }
+
+        $this->create_group($name);
+        return (int) $this->db->insert_id();
+    }
+
     public function create_category($name)
     {
         return $this->db->insert('event_categories', array(
@@ -79,6 +108,13 @@ class Events_model extends CI_Model
             array('category_name' => $name),
             array('category_id' => (int) $category_id)
         );
+    }
+
+    public function create_group($name)
+    {
+        return $this->db->insert('event_groups', array(
+            'group_name' => $name,
+        ));
     }
 
     public function delete_category($category_id)

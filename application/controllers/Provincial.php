@@ -123,7 +123,10 @@ class Provincial extends CI_Controller
     {
         if ($this->input->post('submit')) {
 
-            $this->form_validation->set_rules('event_id', 'Event', 'required|integer|greater_than[0]');
+            $this->form_validation->set_rules('event_id', 'Event', 'trim|regex_match[/^[0-9]*$/]');
+            $this->form_validation->set_rules('event_name_custom', 'Event Name', 'trim');
+            $this->form_validation->set_rules('group_custom', 'Group', 'trim');
+            $this->form_validation->set_rules('category_custom', 'Category', 'trim');
             $rawRows = $this->input->post('winners', TRUE);
             list($winnerRows, $rowErrors, $skippedRows) = $this->normalize_winner_rows($rawRows, false);
 
@@ -141,36 +144,83 @@ class Provincial extends CI_Controller
                 }
 
                 $eventId = (int) $this->input->post('event_id', TRUE);
-                $event   = $this->Events_model->get_event_details($eventId);
+                $eventNameCustom = trim((string) $this->input->post('event_name_custom', TRUE));
+                $groupId = (int) $this->input->post('group_id', TRUE);
+                $groupCustom = trim((string) $this->input->post('group_custom', TRUE));
+                $categoryId = (int) $this->input->post('category_id', TRUE);
+                $categoryCustom = trim((string) $this->input->post('category_custom', TRUE));
 
+                if ($eventId <= 0 && $eventNameCustom === '') {
+                    $this->session->set_flashdata('error', 'Please select or type an event.');
+                    redirect(app_url('admin'));
+                    return;
+                }
+
+                // Resolve group
+                $resolvedGroupId = null;
+                $resolvedGroupName = '';
+                if ($groupCustom !== '') {
+                    $resolvedGroupId = $this->Events_model->ensure_group($groupCustom);
+                    $resolvedGroupName = $groupCustom;
+                } elseif ($groupId > 0) {
+                    $resolvedGroupId = $groupId;
+                    $groupRow = $this->Events_model->get_group($groupId);
+                    if ($groupRow && !empty($groupRow->group_name)) {
+                        $resolvedGroupName = $groupRow->group_name;
+                    }
+                }
+
+                if ($resolvedGroupId === null) {
+                    $this->session->set_flashdata('error', 'Please select or type a group.');
+                    redirect(app_url('admin'));
+                    return;
+                }
+
+                // Resolve category (optional)
+                $resolvedCategoryId = null;
+                $resolvedCategoryName = '';
+                if ($categoryCustom !== '') {
+                    $resolvedCategoryId = $this->Events_model->ensure_category($categoryCustom);
+                    $resolvedCategoryName = $categoryCustom;
+                } elseif ($categoryId > 0) {
+                    $resolvedCategoryId = $categoryId;
+                    $categoryRow = $this->Events_model->get_category($categoryId);
+                    if ($categoryRow && !empty($categoryRow->category_name)) {
+                        $resolvedCategoryName = $categoryRow->category_name;
+                    }
+                }
+
+                // Resolve event
+                if ($eventId <= 0) {
+                    $createResult = $this->Events_model->create_event($eventNameCustom, $resolvedGroupId, $resolvedCategoryId);
+                    if (!$createResult['success']) {
+                        $message = isset($createResult['message']) ? $createResult['message'] : 'Unable to save event.';
+                        $this->session->set_flashdata('error', $message);
+                        redirect(app_url('admin'));
+                        return;
+                    }
+                    $eventId = (int) $createResult['event_id'];
+                }
+
+                $event = $this->Events_model->get_event_details($eventId);
                 if (!$event) {
                     $this->session->set_flashdata('error', 'Selected event could not be found. Please pick a valid event.');
                     redirect(app_url('admin'));
                     return;
                 }
 
+                // Override with custom/selected labels if provided
+                $groupName = $resolvedGroupName !== '' ? $resolvedGroupName : (isset($event->group_name) ? $event->group_name : '');
+                $categoryName = $resolvedCategoryName !== '' ? $resolvedCategoryName : ($event->category_name ?? '');
+
                 $inserted   = 0;
                 $duplicates = array();
 
                 foreach ($winnerRows as $row) {
-                    $groupId    = (int) $this->input->post('group_id', TRUE);
-                    $categoryId = (int) $this->input->post('category_id', TRUE);
-                    $groupName  = isset($event->group_name) ? $event->group_name : '';
-                    $categoryName = $event->category_name;
-
-                    if ($groupId > 0) {
-                        $groupRow = $this->Events_model->get_group($groupId);
-                        if ($groupRow && !empty($groupRow->group_name)) {
-                            $groupName = $groupRow->group_name;
-                        }
-                    }
-
-                    if ($categoryId > 0) {
-                        $categoryRow = $this->Events_model->get_category((int) $categoryId);
-                        if ($categoryRow && !empty($categoryRow->category_name)) {
-                            $categoryName = $categoryRow->category_name;
-                        }
-                    }
+                    $groupId    = $resolvedGroupId;
+                    $categoryId = $resolvedCategoryId;
+                    $groupName  = $groupName ?? (isset($event->group_name) ? $event->group_name : '');
+                    $categoryName = $categoryName ?? ($event->category_name ?? '');
 
                     // 🔁 Duplicate guard: same event + same medal + same winner/team + same municipality
                     // if ($this->Winners_model->winner_exists(
@@ -750,16 +800,45 @@ class Provincial extends CI_Controller
     public function add_event()
     {
         $this->form_validation->set_rules('event_name', 'Event Name', 'required|trim');
-        $this->form_validation->set_rules('group_id', 'Group', 'required|integer|greater_than[0]');
-        $this->form_validation->set_rules('category_name', 'Category', 'trim');
+        $this->form_validation->set_rules('group_id', 'Group', 'integer');
+        $this->form_validation->set_rules('group_custom', 'Group', 'trim');
+        $this->form_validation->set_rules('category_id', 'Category', 'integer');
+        $this->form_validation->set_rules('category_custom', 'Category', 'trim');
+        $this->form_validation->set_rules('category_name', 'Category', 'trim'); // legacy support
 
         if ($this->form_validation->run()) {
-            $name         = $this->input->post('event_name', TRUE);
-            $groupId      = (int) $this->input->post('group_id', TRUE);
-            $categoryName = $this->input->post('category_name', TRUE);
-            $categoryId   = $categoryName !== '' ? $this->Events_model->ensure_category($categoryName) : null;
+            $name            = $this->input->post('event_name', TRUE);
+            $groupId         = (int) $this->input->post('group_id', TRUE);
+            $groupCustom     = trim((string) $this->input->post('group_custom', TRUE));
+            $categoryIdInput = (int) $this->input->post('category_id', TRUE);
+            $categoryCustom  = trim((string) $this->input->post('category_custom', TRUE));
+            $categoryLegacy  = $this->input->post('category_name', TRUE); // legacy text field
 
-            $result = $this->Events_model->create_event($name, $groupId, $categoryId);
+            // Resolve group (required)
+            $resolvedGroupId = null;
+            if ($groupCustom !== '') {
+                $resolvedGroupId = $this->Events_model->ensure_group($groupCustom);
+            } elseif ($groupId > 0) {
+                $resolvedGroupId = $groupId;
+            }
+
+            if ($resolvedGroupId === null) {
+                $this->session->set_flashdata('error', 'Please select or type a group.');
+                $this->redirect_back();
+                return;
+            }
+
+            // Resolve category (optional)
+            $resolvedCategoryId = null;
+            if ($categoryCustom !== '') {
+                $resolvedCategoryId = $this->Events_model->ensure_category($categoryCustom);
+            } elseif ($categoryIdInput > 0) {
+                $resolvedCategoryId = $categoryIdInput;
+            } elseif (!empty($categoryLegacy)) {
+                $resolvedCategoryId = $this->Events_model->ensure_category($categoryLegacy);
+            }
+
+            $result = $this->Events_model->create_event($name, $resolvedGroupId, $resolvedCategoryId);
 
             // New: handle structured result from model
             if (is_array($result) && array_key_exists('success', $result)) {
@@ -801,15 +880,20 @@ class Provincial extends CI_Controller
     {
         $this->form_validation->set_rules('event_id', 'Event ID', 'required|integer|greater_than[0]');
         $this->form_validation->set_rules('event_name', 'Event Name', 'required|trim');
-        $this->form_validation->set_rules('group_id', 'Group', 'required|integer|greater_than[0]');
-        $this->form_validation->set_rules('category_name', 'Category', 'trim');
+        $this->form_validation->set_rules('group_id', 'Group', 'integer');
+        $this->form_validation->set_rules('group_custom', 'Group', 'trim');
+        $this->form_validation->set_rules('category_id', 'Category', 'integer');
+        $this->form_validation->set_rules('category_custom', 'Category', 'trim');
+        $this->form_validation->set_rules('category_name', 'Category', 'trim'); // legacy
 
         if ($this->form_validation->run()) {
             $eventId      = (int) $this->input->post('event_id', TRUE);
             $name         = $this->input->post('event_name', TRUE);
             $groupId      = (int) $this->input->post('group_id', TRUE);
-            $categoryName = $this->input->post('category_name', TRUE);
-            $categoryId   = $categoryName !== '' ? $this->Events_model->ensure_category($categoryName) : null;
+            $groupCustom  = trim((string) $this->input->post('group_custom', TRUE));
+            $categoryIdInput = (int) $this->input->post('category_id', TRUE);
+            $categoryCustom  = trim((string) $this->input->post('category_custom', TRUE));
+            $categoryLegacy  = $this->input->post('category_name', TRUE); // legacy
 
             // Make sure the record exists
             $existing = $this->Events_model->get_event_details($eventId);
@@ -819,10 +903,34 @@ class Provincial extends CI_Controller
                 return;
             }
 
+            // Resolve group
+            $resolvedGroupId = null;
+            if ($groupCustom !== '') {
+                $resolvedGroupId = $this->Events_model->ensure_group($groupCustom);
+            } elseif ($groupId > 0) {
+                $resolvedGroupId = $groupId;
+            }
+
+            if ($resolvedGroupId === null) {
+                $this->session->set_flashdata('error', 'Please select or type a group.');
+                $this->redirect_back();
+                return;
+            }
+
+            // Resolve category
+            $resolvedCategoryId = null;
+            if ($categoryCustom !== '') {
+                $resolvedCategoryId = $this->Events_model->ensure_category($categoryCustom);
+            } elseif ($categoryIdInput > 0) {
+                $resolvedCategoryId = $categoryIdInput;
+            } elseif (!empty($categoryLegacy)) {
+                $resolvedCategoryId = $this->Events_model->ensure_category($categoryLegacy);
+            }
+
             // 🔒 DUPLICATE GUARD:
             // Check if another row already has the same (event_name + group_id + category_id)
             // Exclude the current event_id from the check.
-            if ($this->Events_model->has_duplicate_combo($name, $groupId, $categoryId, $eventId)) {
+            if ($this->Events_model->has_duplicate_combo($name, $resolvedGroupId, $resolvedCategoryId, $eventId)) {
                 $this->session->set_flashdata(
                     'error',
                     'Cannot update event: another event with the same name, group, and category already exists.'
@@ -832,7 +940,7 @@ class Provincial extends CI_Controller
             }
 
             // Safe to update
-            $this->Events_model->update_event($eventId, $name, $groupId, $categoryId);
+            $this->Events_model->update_event($eventId, $name, $resolvedGroupId, $resolvedCategoryId);
             $this->session->set_flashdata('success', 'Event updated.');
         } else {
             $this->session->set_flashdata('error', validation_errors('', ''));

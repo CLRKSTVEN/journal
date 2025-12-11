@@ -86,7 +86,7 @@
                             };
                             ?>
                             <?php if ($activeMunicipalityHeader === ''): ?>
-                                <img src="<?= base_url('upload/banners/Banner.png'); ?>" alt="<?= htmlspecialchars($meet_title . ' banner', ENT_QUOTES, 'UTF-8'); ?>" class="banner-image">
+                                <img src="<?= base_url('upload/banners/journal.jpg'); ?>" alt="<?= htmlspecialchars($meet_title . ' banner', ENT_QUOTES, 'UTF-8'); ?>" class="banner-image">
                             <?php else: ?>
                                 <div class="landing-title">
                                     <h4>Official Result Board</h4>
@@ -111,10 +111,10 @@
                                     class="btn btn-sm <?= $group === 'Secondary' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                                     Secondary
                                 </a>
-                                <a href="<?= $makeGroupUrl('PARA'); ?>"
+                                <!-- <a href="<?= $makeGroupUrl('PARA'); ?>"
                                     class="btn btn-sm <?= $group === 'PARA' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                                     PARAGAMES
-                                </a>
+                                </a> -->
                             </div>
                             <a href="<?= $loginUrl; ?>" class="login-btn" title="Admin">
                                 <?= $loginText; ?>
@@ -487,7 +487,7 @@
                                                         <td class="text-center font-weight-bold<?= $bronzeCls; ?>"><?= htmlspecialchars($thirdTeams, ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="text-center font-weight-bold"><?= htmlspecialchars($fourth > 0 ? $fourthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="text-center font-weight-bold"><?= htmlspecialchars($fifth > 0 ? $fifthTeams : '—', ENT_QUOTES, 'UTF-8'); ?></td>
-                                                    </tr>
+                                                        </tr>
                                                     <?php endforeach; ?>
                                                 <?php else: ?>
                                                     <tr class="no-results-row">

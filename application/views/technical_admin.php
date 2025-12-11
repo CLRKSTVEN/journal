@@ -57,6 +57,7 @@
                     $appSlug = app_slug();
                     $meet_title = isset($meet->meet_title) ? $meet->meet_title : app_name();
                     $meet_year  = isset($meet->meet_year)  ? $meet->meet_year  : date('Y');
+                    $brand_title = app_name();
                     ?>
 
                     <div class="row">
@@ -64,7 +65,7 @@
                             <div class="page-title-box d-flex align-items-center justify-content-between flex-wrap">
                                 <div class="mb-2">
                                     <h4 class="page-title mb-0">
-                                        <?= htmlspecialchars($meet_title . ' ' . $meet_year, ENT_QUOTES, 'UTF-8'); ?> – Technical Officials
+                                        <?= htmlspecialchars($brand_title . ' ' . $meet_year, ENT_QUOTES, 'UTF-8'); ?> – Technical Officials
                                     </h4>
                                 </div>
                                 <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
