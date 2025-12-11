@@ -17,7 +17,7 @@ $config['base_url'] = $detected_scheme . $host . $base_path;
 
 // App branding/slug for friendly URLs (e.g., /journal instead of /provincial)
 $config['app_slug'] = 'journal';
-$config['app_name'] = 'Journalism Rankings Hub';
+$config['app_name'] = 'Journalism Rankings';
 $config['app_tagline'] = 'Live campus journalism standings and awards tallies.';
 
 $config['enable_hooks'] = TRUE;

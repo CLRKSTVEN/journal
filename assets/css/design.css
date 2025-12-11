@@ -455,6 +455,16 @@
         border-color: rgba(148, 163, 184, 0.35);
     }
 
+    #liveTallyWrapper .winners-table thead th {
+        background: #ffffff !important;
+        color: #4b5563;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    #liveTallyWrapper .winners-table thead th::after {
+        display: none !important;
+    }
+
     #liveTallyWrapper .winners-toolbar {
         background: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(4px);
@@ -814,46 +824,35 @@
         font-weight: 900;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        border: 2px solid;
+        border: 1px solid #d1d5db;
         min-width: 86px;
         transition: all 0.2s ease;
-        box-shadow:
-            0 0 0 1px rgba(148, 163, 184, 0.3),
-            0 8px 18px rgba(148, 163, 184, 0.35);
+        box-shadow: none;
+        background: transparent;
+        color: #1f2937;
     }
 
     .chip-medal:hover {
         transform: translateY(-1px) scale(1.02);
-        box-shadow:
-            0 0 0 1px rgba(148, 163, 184, 0.5),
-            0 14px 30px rgba(148, 163, 184, 0.55);
+        box-shadow: none;
     }
 
     .chip-gold {
-        background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-        color: #1f2937;
-        border-color: #cbd5e1;
-        box-shadow:
-            0 0 18px rgba(148, 163, 184, 0.35),
-            0 0 0 1px rgba(248, 250, 252, 1);
+        background: transparent;
+        color: #c59f4a;
+        border-color: #c59f4a;
     }
 
     .chip-silver {
-        background: linear-gradient(135deg, #f9fafb, #e5e7eb);
-        color: #374151;
-        border-color: #9ca3af;
-        box-shadow:
-            0 0 18px rgba(156, 163, 175, 0.35),
-            0 0 0 1px rgba(248, 250, 252, 1);
+        background: transparent;
+        color: #6b7280;
+        border-color: #6b7280;
     }
 
     .chip-bronze {
-        background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-        color: #374151;
-        border-color: #cbd5e1;
-        box-shadow:
-            0 0 18px rgba(148, 163, 184, 0.35),
-            0 0 0 1px rgba(248, 250, 252, 1);
+        background: transparent;
+        color: #c25a14;
+        border-color: #c25a14;
     }
 
     .footer-note {
@@ -1186,17 +1185,50 @@
 
         #liveTallyWrapper .winners-table th:first-child,
         #liveTallyWrapper .winners-table td:first-child {
-            width: 40%;
+            width: 12%;
         }
 
         #liveTallyWrapper .winners-table th:nth-child(n+2),
         #liveTallyWrapper .winners-table td:nth-child(n+2) {
-            width: 15%;
+            width: 22%;
+        }
+
+        /* Fine tune per column for 5-column layout */
+        #liveTallyWrapper .winners-table th:nth-child(1),
+        #liveTallyWrapper .winners-table td:nth-child(1) {
+            width: 10%;
+        }
+
+        #liveTallyWrapper .winners-table th:nth-child(2),
+        #liveTallyWrapper .winners-table td:nth-child(2) {
+            width: 26%;
+        }
+
+        #liveTallyWrapper .winners-table th:nth-child(3),
+        #liveTallyWrapper .winners-table td:nth-child(3) {
+            width: 24%;
+        }
+
+        #liveTallyWrapper .winners-table th:nth-child(4),
+        #liveTallyWrapper .winners-table td:nth-child(4) {
+            width: 20%;
+        }
+
+        #liveTallyWrapper .winners-table th:nth-child(5),
+        #liveTallyWrapper .winners-table td:nth-child(5) {
+            width: 20%;
         }
 
         #liveTallyWrapper .winners-table th {
             letter-spacing: 0.04em;
             word-spacing: 0.25em;
+            background: #ffffff !important;
+            color: #4b5563;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        #liveTallyWrapper .winners-table thead th::after {
+            display: none !important;
         }
 
         .chip-medal {

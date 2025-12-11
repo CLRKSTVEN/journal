@@ -693,9 +693,12 @@
                 <div class="modal-body">
                     <input type="hidden" name="winner_id" id="winnerIdField" value="">
                     <div class="form-group">
-                        <label>Event <span class="text-danger">*</span></label>
-                        <input type="text" id="eventSearch" class="form-control mb-2" placeholder="Enter event name (or pick below)">
-                        <input type="hidden" name="event_name_custom" id="eventNameCustom">
+                        <label class="mb-0">Event <span class="text-danger">*</span></label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <small class="text-muted">Click Type or Select to switch</small>
+                            <button type="button" class="btn btn-link btn-sm p-0 toggle-event-mode" data-mode="custom">Type</button>
+                        </div>
+                        <input type="text" name="event_name_custom" id="eventNameCustom" class="form-control mb-2 d-none" placeholder="Enter event name">
                         <select name="event_id" id="eventSelect" class="form-control">
                             <option value="">-- Select Event --</option>
                             <?php
@@ -938,12 +941,12 @@
             var $eventNameInput = $('#eventName');
             var $eventGroupSelect = $('#eventGroup');
             var $eventCategorySelect = $('#eventCategory');
-            var $eventSearch = $('#eventSearch');
             var $eventNameCustom = $('#eventNameCustom');
             var $groupInput = $('#winnerGroupCustom');
             var $groupSelectInput = $('#winnerGroupSelect');
             var $categoryInput = $('#winnerCategoryCustom');
             var $categorySelectInput = $('#winnerCategorySelect');
+            var $eventModeToggle = $('.toggle-event-mode');
             var $groupModeToggle = $('.toggle-group-mode');
             var $categoryModeToggle = $('.toggle-category-mode');
             var eventsMeta = <?= json_encode(array_map(function ($ev) {
@@ -1208,27 +1211,26 @@
                         matchedLabel = $opt.text();
                     }
                 });
-                if (matchedId) {
-                    $eventSelect.val(matchedId);
-                    $eventNameCustom.val('');
-                } else if (term === '') {
-                    $eventSelect.val('');
-                    $eventNameCustom.val('');
-                } else {
-                    // If only one visible option remains, select it
-                    var $visible = $eventSelect.find('option:visible');
-                    if ($visible.length === 2) { // includes placeholder
-                        var val = $visible.last().val();
-                        if (val) {
-                            $eventSelect.val(val);
-                            $eventNameCustom.val('');
-                        }
-                    }
-                    if (!$eventSelect.val()) {
-                        $eventNameCustom.val(term);
-                    }
-                }
+                // With no search box, default to select-only unless user switches to custom
+                $eventSelect.val(matchedId || '');
                 rebuildGroupAndCategoryOptions($eventSelect.val());
+            }
+
+            function setEventMode(mode) {
+                var useCustom = mode === 'custom';
+                $eventNameCustom.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $eventSelect.toggle(!useCustom).prop('disabled', useCustom);
+
+                if (useCustom) {
+                    if ($eventNameCustom.val().trim() === '' && $eventSelect.val()) {
+                        $eventNameCustom.val($eventSelect.find('option:selected').text());
+                    }
+                    $eventSelect.val('');
+                    $eventModeToggle.text('Select').data('mode', 'select');
+                } else {
+                    $eventNameCustom.val('');
+                    $eventModeToggle.text('Type').data('mode', 'custom');
+                }
             }
 
             function setGroupMode(mode) {
@@ -1272,6 +1274,10 @@
                 $(this).closest('.medal-row').remove();
             });
 
+            $eventModeToggle.on('click', function() {
+                setEventMode($(this).data('mode'));
+            });
+
             $groupModeToggle.on('click', function() {
                 setGroupMode($(this).data('mode'));
             });
@@ -1280,18 +1286,8 @@
                 setCategoryMode($(this).data('mode'));
             });
 
-            // Sync search box with select
-            $eventSearch.on('input', function() {
-                filterEvents($(this).val());
-            });
-
-            // Keep search text aligned with selected option
+            // Keep select change in sync with category/group
             $eventSelect.on('change', function() {
-                var text = $eventSelect.find('option:selected').text() || '';
-                if (text && text !== '-- Select Event --') {
-                    $eventSearch.val(text);
-                    $eventNameCustom.val('');
-                }
                 rebuildGroupAndCategoryOptions($eventSelect.val());
             });
 
@@ -1300,7 +1296,6 @@
                 $winnerForm.attr('action', createAction);
                 $('#winnerIdField').val('');
                 $eventSelect.val('').trigger('change');
-                $eventSearch.val('');
                 $eventNameCustom.val('');
                 $groupInput.val('');
                 $categoryInput.val('');
@@ -1309,6 +1304,7 @@
                 $winnerSubmitBtn.html('<i class="mdi mdi-content-save-outline"></i> Save Winners');
                 $winnerModalLabel.text('Add Winners');
                 seedDefaultRows();
+                setEventMode('select');
                 setGroupMode('select');
                 setCategoryMode('select');
             }
@@ -1319,6 +1315,7 @@
                 $('#winnerIdField').val(data.id || '');
                 setGroupMode('select');
                 setCategoryMode('select');
+                setEventMode('select');
                 $eventNameCustom.val('');
 
                 var eventId = data.event_id ? String(data.event_id) : '';
@@ -1350,6 +1347,7 @@
                         // Treat as typed custom event
                         $eventSelect.val('');
                         $eventNameCustom.val(eventName);
+                        setEventMode('custom');
                     }
                 } else {
                     $eventSelect.val('');

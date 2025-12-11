@@ -311,34 +311,7 @@
                                 </div>
                             </div>
 
-                            <!-- Participating Teams (default view) -->
-                            <?php
-                            $teamRows = is_array($allMunicipalities) ? $allMunicipalities : array();
-                            if (!empty($teamRows)) {
-                                usort($teamRows, function ($a, $b) use ($tallyMap, $normalizeName) {
-                                    $aName = isset($a->municipality) ? trim($a->municipality) : '';
-                                    $bName = isset($b->municipality) ? trim($b->municipality) : '';
-                                    $aKey = $normalizeName($aName);
-                                    $bKey = $normalizeName($bName);
-                                    $aStats = $tallyMap[$aKey] ?? null;
-                                    $bStats = $tallyMap[$bKey] ?? null;
-                                    $aGold = $aStats ? (int) $aStats->gold : 0;
-                                    $bGold = $bStats ? (int) $bStats->gold : 0;
-                                    if ($aGold !== $bGold) return $bGold - $aGold;
-                                    $aSilver = $aStats ? (int) $aStats->silver : 0;
-                                    $bSilver = $bStats ? (int) $bStats->silver : 0;
-                                    if ($aSilver !== $bSilver) return $bSilver - $aSilver;
-                                    $aBronze = $aStats ? (int) $aStats->bronze : 0;
-                                    $bBronze = $bStats ? (int) $bStats->bronze : 0;
-                                    if ($aBronze !== $bBronze) return $bBronze - $aBronze;
-                                    $aTotal = $aStats ? (int) $aStats->total_medals : 0;
-                                    $bTotal = $bStats ? (int) $bStats->total_medals : 0;
-                                    if ($aTotal !== $bTotal) return $bTotal - $aTotal;
-                                    return strcasecmp($aName, $bName);
-                                });
-                            }
-                            $groupParam = ($group === 'ALL') ? '' : '&group=' . urlencode($group);
-                            ?>
+                            <!-- Placements table -->
                             <div class="winners-table-wrapper mt-4" id="liveTallyWrapper">
                                 <div class="winners-toolbar">
                                     <div class="winners-toolbar-left">
@@ -352,80 +325,58 @@
                                     <table class="table table-sm table-hover mb-0 winners-table">
                                         <thead>
                                             <tr>
-                                                <th>Team</th>
-                                                <th class="text-center col-gold">1st</th>
-                                                <th class="text-center col-silver">2nd</th>
-                                                <th class="text-center col-bronze">3rd</th>
-                                                <th class="text-center">4th</th>
-                                                <th class="text-center">5th</th>
-                                                <th class="text-center">Total</th>
+                                                <th class="text-center" style="width:90px;">Rank</th>
+                                                <th>Event</th>
+                                                <th>Name (Winner)</th>
+                                                <th>School</th>
+                                                <th>Coach</th>
                                             </tr>
                                         </thead>
 
                                         <tbody>
-                                            <?php if (!empty($teamRows)): ?>
-                                                <?php foreach ($teamRows as $row): ?>
+                                            <?php if (!empty($winnersSorted)): ?>
+                                                <?php foreach ($winnersSorted as $w): ?>
                                                     <?php
-                                                    $mName = isset($row->municipality) ? $row->municipality : '';
-                                                    $mKey = $normalizeName($mName);
-                                                    $stats = $tallyMap[$mKey] ?? null;
-                                                    $hasData = $stats && ((int)$stats->total_medals > 0 || (int)$stats->gold > 0 || (int)$stats->silver > 0 || (int)$stats->bronze > 0);
-                                                    $first = $stats ? $getCount($stats, array('first', 'gold')) : 0;
-                                                    $second = $stats ? $getCount($stats, array('second', 'silver')) : 0;
-                                                    $third = $stats ? $getCount($stats, array('third', 'bronze')) : 0;
-                                                    $fourth = $stats ? $getCount($stats, array('fourth')) : 0;
-                                                    $fifth = $stats ? $getCount($stats, array('fifth')) : 0;
-                                                    $total = $first + $second + $third + $fourth + $fifth;
-                                                    $goldClass = ($first > 0) ? ' col-gold' : '';
-                                                    $silverClass = ($second > 0) ? ' col-silver' : '';
-                                                    $bronzeClass = ($third > 0) ? ' col-bronze' : '';
-                                                    $logo = isset($logoMap[$mName]) ? $logoMap[$mName] : '';
-                                                    $filterUrl = app_url() . '?municipality=' . urlencode($mName) . $groupParam;
+                                                    $placement = $placementLabel($w->medal ?? '');
+                                                    $chipClass = 'chip-silver';
+                                                    if ($placement === '1st') $chipClass = 'chip-gold';
+                                                    elseif ($placement === '3rd') $chipClass = 'chip-bronze';
+                                                    $fullName = '';
+                                                    if (!empty($w->full_name)) {
+                                                        $fullName = $w->full_name;
+                                                    } else {
+                                                        $fullNameParts = array_filter(array($w->first_name ?? '', $w->middle_name ?? '', $w->last_name ?? ''));
+                                                        $fullName = implode(' ', $fullNameParts);
+                                                    }
+                                                    $school = isset($w->school) && trim($w->school) !== '' ? $w->school : '-';
+                                                    $coach = isset($w->coach) && trim($w->coach) !== '' ? $w->coach : '-';
+                                                    $eventLabel = trim((string) ($w->event_name ?? ''));
+                                                    $categoryLabel = trim((string) ($w->category ?? ''));
                                                     ?>
                                                     <tr>
+                                                        <td class="text-center align-middle">
+                                                            <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        </td>
                                                         <td class="align-middle">
-                                                            <a href="<?= $filterUrl; ?>" class="d-flex align-items-center" style="gap:10px; text-decoration:none; color:inherit;">
-                                                                <?php if (!empty($logo)): ?>
-                                                                    <img src="<?= base_url('upload/team_logos/' . $logo); ?>" alt="<?= htmlspecialchars($mName, ENT_QUOTES, 'UTF-8'); ?> logo" class="team-logo">
+                                                            <?php if ($eventLabel !== ''): ?>
+                                                                <div class="font-weight-bold"><?= htmlspecialchars($eventLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                <?php if ($categoryLabel !== ''): ?>
+                                                                    <div class="text-muted small"><?= htmlspecialchars($categoryLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                                 <?php endif; ?>
-                                                                <span><?= htmlspecialchars($mName, ENT_QUOTES, 'UTF-8'); ?></span>
-                                                            </a>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">—</span>
+                                                            <?php endif; ?>
                                                         </td>
-                                                        <td class="text-center font-weight-bold<?= $goldClass; ?>">
-                                                            <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="1st"><?= $first; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
+                                                        <td class="align-middle">
+                                                            <div class="font-weight-bold text-uppercase"><?= htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8'); ?></div>
                                                         </td>
-                                                        <td class="text-center font-weight-bold<?= $silverClass; ?>">
-                                                            <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="2nd"><?= $second; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center font-weight-bold<?= $bronzeClass; ?>">
-                                                            <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="3rd"><?= $third; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center font-weight-bold">
-                                                            <?php if ($hasData && $fourth > 0): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="4th"><?= $fourth; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center font-weight-bold">
-                                                            <?php if ($hasData && $fifth > 0): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="5th"><?= $fifth; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
-                                                        </td>
-                                                        <td class="text-center font-weight-bold">
-                                                            <?php if ($hasData): ?>
-                                                                <a href="<?= $filterUrl; ?>" class="medal-filter-link" data-medal="All"><?= $total; ?></a>
-                                                                <?php else: ?>—<?php endif; ?>
-                                                        </td>
+                                                        <td class="align-middle"><?= htmlspecialchars($school, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="align-middle"><?= htmlspecialchars($coach, ENT_QUOTES, 'UTF-8'); ?></td>
                                                     </tr>
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr class="no-results-row">
-                                                    <td colspan="5" class="text-center py-4 text-muted">No teams found.</td>
+                                                    <td colspan="5" class="text-center py-4 text-muted">No placements posted yet.</td>
                                                 </tr>
                                             <?php endif; ?>
                                         </tbody>
