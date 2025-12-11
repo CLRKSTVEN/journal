@@ -59,7 +59,8 @@
         }
 
         :root {
-            --app-font: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            /* Clean, highly readable sans stack for web */
+            --app-font: 'Source Sans Pro', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
         }
 
         body,
