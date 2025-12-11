@@ -255,8 +255,12 @@
                     <input type="hidden" name="event_id" id="eventIdField" value="">
                     <input type="hidden" name="event_name" id="eventName">
                     <div class="form-group">
-                        <label>Event Name</label>
-                        <input type="text" id="eventSearch" class="form-control mb-2" placeholder="Enter event name (or pick below)">
+                        <label class="mb-0">Event Name</label>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <small class="text-muted">Click Type or Select to switch</small>
+                            <button type="button" class="btn btn-link btn-sm p-0 toggle-event-mode" data-mode="custom">Type</button>
+                        </div>
+                        <input type="text" id="eventNameInputField" class="form-control mb-2 d-none" placeholder="Enter event name">
                         <select id="eventSelect" class="form-control mb-2">
                             <option value="">-- Select Event --</option>
                             <?php
@@ -282,7 +286,7 @@
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <small class="form-text text-muted">Type the event name; if it is not in the list we’ll save exactly what you type.</small>
+                        <small class="form-text text-muted">Select an event or click Type to enter a new one.</small>
                     </div>
                     <div class="form-group">
                         <label class="mb-0">Group</label>
@@ -386,12 +390,13 @@
             var $eventSubmitBtn = $('#eventSubmitBtn');
             var $eventIdField = $('#eventIdField');
             var $eventNameInput = $('#eventName');
-            var $eventSearch = $('#eventSearch');
+            var $eventNameField = $('#eventNameInputField');
             var $eventSelect = $('#eventSelect');
             var $eventGroupSelect = $('#eventGroupSelect');
             var $eventCategorySelect = $('#eventCategorySelect');
             var $groupInput = $('#eventGroupCustom');
             var $categoryInput = $('#eventCategoryCustom');
+            var $eventModeToggle = $('.toggle-event-mode');
             var $groupModeToggle = $('.toggle-group-mode');
             var $categoryModeToggle = $('.toggle-category-mode');
             var eventsMeta = <?= json_encode(array_map(function ($ev) {
@@ -444,34 +449,14 @@
                 }
             }
 
-            function filterEventOptions(term) {
-                term = (term || '').toString().toLowerCase().trim();
-                var matchedId = '';
-                $eventSelect.find('option').each(function() {
-                    var $opt = $(this);
-                    if ($opt.val() === '') {
-                        $opt.show();
-                        return;
-                    }
-                    var text = ($opt.text() || '').toLowerCase();
-                    var match = term === '' || text.indexOf(term) !== -1;
-                    $opt.toggle(match);
-                    if (match && text === term) {
-                        matchedId = $opt.val();
-                    }
-                });
-
-                if (matchedId) {
-                    $eventSelect.val(matchedId);
-                    var selectedText = $eventSelect.find('option:selected').text() || '';
-                    $eventSearch.val(selectedText);
-                    $eventNameInput.val(selectedText);
-                    applyGroupCategoryFromSelect();
+            function setEventMode(mode) {
+                var useCustom = mode === 'custom';
+                $eventNameField.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $eventSelect.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+                if (useCustom) {
+                    $eventModeToggle.text('Select').data('mode', 'select');
                 } else {
-                    if (term === '') {
-                        $eventSelect.val('');
-                    }
-                    $eventNameInput.val($eventSearch.val());
+                    $eventModeToggle.text('Type').data('mode', 'custom');
                 }
             }
 
@@ -513,11 +498,11 @@
                 $eventSubmitBtn.text('Save Event');
                 $eventIdField.val('');
                 $eventNameInput.val('');
-                $eventSearch.val('');
+                $eventNameField.val('');
                 $eventSelect.val('');
                 $eventGroupSelect.val('');
                 $eventCategorySelect.val('');
-                filterEventOptions('');
+                setEventMode('select');
                 setGroupMode('select');
                 setCategoryMode('select');
             }
@@ -528,13 +513,12 @@
                 $eventSubmitBtn.text('Update Event');
                 $eventIdField.val(data.id || '');
                 $eventNameInput.val(data.name || '');
-                $eventSearch.val(data.name || '');
                 $eventSelect.val(data.id || '');
-                filterEventOptions(data.name || '');
                 $eventGroupSelect.val(data.group_id || '');
                 $eventCategorySelect.val(data.category_id || '');
                 setGroupMode('select');
                 setCategoryMode('select');
+                setEventMode('select');
                 if (!$eventGroupSelect.val() && data.group_name) {
                     $groupInput.val(data.group_name);
                     setGroupMode('custom');
@@ -544,24 +528,42 @@
                     $categoryInput.val(data.category_name);
                     setCategoryMode('custom');
                 }
+                if ((!$eventSelect.val() || !data.id) && data.name) {
+                    $eventNameField.val(data.name);
+                    setEventMode('custom');
+                    $eventNameInput.val(data.name);
+                }
             }
 
             $('#openAddEventModal').on('click', function() {
                 setEventCreateMode();
             });
 
-            $eventSearch.on('input', function() {
-                filterEventOptions($(this).val());
+            $eventSelect.on('change', function() {
+                var text = $eventSelect.find('option:selected').text() || '';
+                if (text) {
+                    $eventNameInput.val(text);
+                } else {
+                    $eventNameInput.val('');
+                }
+                applyGroupCategoryFromSelect();
+            });
+
+            $eventNameField.on('input', function() {
                 $eventNameInput.val($(this).val());
             });
 
-            $eventSelect.on('change', function() {
-                var text = $eventSelect.find('option:selected').text() || '';
-                $eventSearch.val(text);
-                if (text) {
-                    $eventNameInput.val(text);
+            $eventModeToggle.on('click', function() {
+                var mode = $(this).data('mode');
+                setEventMode(mode);
+                if (mode === 'custom') {
+                    $eventSelect.val('');
+                    $eventNameField.val('');
+                    $eventNameInput.val('');
+                } else {
+                    $eventNameField.val('');
+                    $eventNameInput.val('');
                 }
-                applyGroupCategoryFromSelect();
             });
 
             $groupModeToggle.on('click', function() {

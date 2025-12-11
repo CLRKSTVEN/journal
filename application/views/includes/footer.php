@@ -10,7 +10,7 @@
                     style="cursor:pointer"
                     data-toggle="modal"
                     data-target="#fbmsoVisionMissionModal">
-                    <b>Davao Oriental Athletic Meet. © 2025</b> All rights reserved.
+                    <b>Davao Oriental Journalism Contest. © 2025</b> All rights reserved.
                 </p>
             </div>
         </div>
