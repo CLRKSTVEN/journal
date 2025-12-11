@@ -482,8 +482,11 @@
                                                     $medal = $w->medal ?? 'Silver';
                                                     $placement = $placementLabel($medal);
                                                     $chipClass = 'chip-silver';
-                                                    if ($placement === '1st') $chipClass = 'chip-gold';
-                                                    elseif ($placement === '3rd') $chipClass = 'chip-bronze';
+                                                    if ($placement === '1st') {
+                                                        $chipClass = 'chip-gold';
+                                                    } elseif (in_array($placement, array('3rd', '4th', '5th'), true)) {
+                                                        $chipClass = 'chip-bronze';
+                                                    }
                                                     $fullName = '';
                                                     if (!empty($w->full_name)) {
                                                         $fullName = $w->full_name;

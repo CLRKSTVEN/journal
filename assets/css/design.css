@@ -824,35 +824,32 @@
         font-weight: 900;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        border: 1px solid #d1d5db;
         min-width: 86px;
         transition: all 0.2s ease;
         box-shadow: none;
-        background: transparent;
-        color: #1f2937;
     }
 
     .chip-medal:hover {
         transform: translateY(-1px) scale(1.02);
-        box-shadow: none;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
     }
 
     .chip-gold {
-        background: transparent;
-        color: #c59f4a;
-        border-color: #c59f4a;
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #f59e0b;
     }
 
     .chip-silver {
-        background: transparent;
-        color: #6b7280;
-        border-color: #6b7280;
+        background: #e5e7eb;
+        color: #374151;
+        border: 1px solid #9ca3af;
     }
 
     .chip-bronze {
-        background: transparent;
-        color: #c25a14;
-        border-color: #c25a14;
+        background: #f6d7c3;
+        color: #92400e;
+        border: 1px solid #b45309;
     }
 
     .footer-note {
