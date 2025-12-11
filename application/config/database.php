@@ -15,7 +15,7 @@ $db['default'] = array(
 	// 'database' => 'srmsportal_vmc',
 	// 'database' => 'srmsportal_vmc1',
 	// 'database' => 'srmsportal_demo2',
-	'database' => 'depedmis_journal',
+	'database' => 'deped_journal',
 	// 'database' => 'knpsrms',
 	// 'database' => 'knpsrms_db',
 
