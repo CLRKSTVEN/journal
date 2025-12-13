@@ -1353,9 +1353,6 @@
                     $eventSelect.val('');
                 }
 
-                var selectedLabel = $eventSelect.find('option:selected').text() || eventName || '';
-                $eventSearch.val(selectedLabel);
-
                 // 2) Rebuild Group + Category options based on selected event
                 rebuildGroupAndCategoryOptions($eventSelect.val());
 

@@ -611,8 +611,14 @@ class Provincial extends CI_Controller
 
     public function update_winner()
     {
+        // Allow either selected event_id or typed event_name_custom
         $this->form_validation->set_rules('winner_id', 'Winner ID', 'required|integer|greater_than[0]');
-        $this->form_validation->set_rules('event_id', 'Event', 'required|integer|greater_than[0]');
+        $this->form_validation->set_rules('event_id', 'Event', 'trim|regex_match[/^[0-9]*$/]');
+        $this->form_validation->set_rules('event_name_custom', 'Event Name', 'trim');
+        $this->form_validation->set_rules('group_id', 'Group', 'trim|regex_match[/^[0-9]*$/]');
+        $this->form_validation->set_rules('group_custom', 'Group', 'trim');
+        $this->form_validation->set_rules('category_id', 'Category', 'trim|regex_match[/^[0-9]*$/]');
+        $this->form_validation->set_rules('category_custom', 'Category', 'trim');
         $rawRows = $this->input->post('winners', TRUE);
 
         // Backward compatibility if the request comes from the old single-entry form
@@ -652,7 +658,12 @@ class Provincial extends CI_Controller
             }
 
             $winnerId = (int) $this->input->post('winner_id', TRUE);
-            $eventId  = (int) $this->input->post('event_id', TRUE);
+            $eventIdInput  = (int) $this->input->post('event_id', TRUE);
+            $eventNameCustom = trim((string) $this->input->post('event_name_custom', TRUE));
+            $groupIdInput = (int) $this->input->post('group_id', TRUE);
+            $groupCustom = trim((string) $this->input->post('group_custom', TRUE));
+            $categoryIdInput = (int) $this->input->post('category_id', TRUE);
+            $categoryCustom = trim((string) $this->input->post('category_custom', TRUE));
 
             $winner = $this->Winners_model->get_winner($winnerId);
             if (!$winner) {
@@ -661,31 +672,75 @@ class Provincial extends CI_Controller
                 return;
             }
 
-            $event = $this->Events_model->get_event_details($eventId);
-            if (!$event) {
-                $this->session->set_flashdata('error', 'Selected event could not be found. Please pick a valid event.');
+            // Resolve group (required). Fall back to winner's existing group or "General".
+            $resolvedGroupId = null;
+            $resolvedGroupName = '';
+            $groupFallback = !empty($winner->event_group) ? $winner->event_group : 'General';
+
+            if ($groupCustom !== '') {
+                $resolvedGroupId = $this->Events_model->ensure_group($groupCustom);
+                $resolvedGroupName = $groupCustom;
+            } elseif ($groupIdInput > 0) {
+                $resolvedGroupId = $groupIdInput;
+                $groupRow = $this->Events_model->get_group($groupIdInput);
+                if ($groupRow && !empty($groupRow->group_name)) {
+                    $resolvedGroupName = $groupRow->group_name;
+                }
+            } else {
+                $resolvedGroupName = $groupFallback;
+                $resolvedGroupId = $this->Events_model->ensure_group($groupFallback);
+            }
+
+            if ($resolvedGroupId === null) {
+                $this->session->set_flashdata('error', 'Please select or type a group.');
                 redirect(app_url('admin'));
                 return;
             }
 
-            $groupId = (int) $this->input->post('group_id', TRUE);
-            $categoryId = (int) $this->input->post('category_id', TRUE);
-            $groupName = isset($event->group_name) ? $event->group_name : '';
-            $categoryName = $event->category_name;
-
-            if ($groupId > 0) {
-                $groupRow = $this->Events_model->get_group($groupId);
-                if ($groupRow && !empty($groupRow->group_name)) {
-                    $groupName = $groupRow->group_name;
-                }
-            }
-
-            if ($categoryId > 0) {
-                $categoryRow = $this->Events_model->get_category((int) $categoryId);
+            // Resolve category (optional).
+            $resolvedCategoryId = null;
+            $resolvedCategoryName = '';
+            if ($categoryCustom !== '') {
+                $resolvedCategoryId = $this->Events_model->ensure_category($categoryCustom);
+                $resolvedCategoryName = $categoryCustom;
+            } elseif ($categoryIdInput > 0) {
+                $resolvedCategoryId = $categoryIdInput;
+                $categoryRow = $this->Events_model->get_category($categoryIdInput);
                 if ($categoryRow && !empty($categoryRow->category_name)) {
-                    $categoryName = $categoryRow->category_name;
+                    $resolvedCategoryName = $categoryRow->category_name;
                 }
+            } elseif (!empty($winner->category)) {
+                $resolvedCategoryName = $winner->category;
             }
+
+            // Resolve event: use selected, or create from typed/custom name.
+            $event = null;
+            if ($eventIdInput > 0) {
+                $event = $this->Events_model->get_event_details($eventIdInput);
+            }
+
+            if (!$event) {
+                $eventLabel = $eventNameCustom !== '' ? $eventNameCustom : ($winner->event_name ?? '');
+                if ($eventLabel === '') {
+                    $this->session->set_flashdata('error', 'Please select or type an event.');
+                    redirect(app_url('admin'));
+                    return;
+                }
+
+                $createResult = $this->Events_model->create_event($eventLabel, $resolvedGroupId, $resolvedCategoryId);
+                if (!$createResult['success']) {
+                    $message = isset($createResult['message']) ? $createResult['message'] : 'Unable to save event.';
+                    $this->session->set_flashdata('error', $message);
+                    redirect(app_url('admin'));
+                    return;
+                }
+
+                $eventIdInput = (int) $createResult['event_id'];
+                $event = $this->Events_model->get_event_details($eventIdInput);
+            }
+
+            $groupName = $resolvedGroupName !== '' ? $resolvedGroupName : ($event->group_name ?? $groupFallback);
+            $categoryName = $resolvedCategoryName !== '' ? $resolvedCategoryName : ($event->category_name ?? '');
 
             $payload = $winnerRows[0];
             $update = array(
