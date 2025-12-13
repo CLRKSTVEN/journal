@@ -987,6 +987,7 @@ class Provincial extends CI_Controller
         $allowed   = array('Gold', 'Silver', 'Bronze', '4th', '5th');
         $medalCounts = array('Gold' => 0, 'Silver' => 0, 'Bronze' => 0, '4th' => 0, '5th' => 0);
         $skippedMissing = 0;
+        $fallbackMunicipality = 'No Team'; // allow saving even when no team is selected
 
         if (!is_array($rawRows)) {
             return array($validRows, $errors, $skippedMissing);
@@ -1002,15 +1003,15 @@ class Provincial extends CI_Controller
             $last = isset($row['last_name']) ? trim($row['last_name']) : '';
             $entryType = strtolower(isset($row['entry_type']) ? trim($row['entry_type']) : 'individual');
             $teamNames = isset($row['team_names']) ? trim($row['team_names']) : '';
-            $municipality = isset($row['municipality']) ? trim($row['municipality']) : '';
+            $municipalityRaw = isset($row['municipality']) ? trim($row['municipality']) : '';
             $school = isset($row['school']) ? trim($row['school']) : '';
             $coach = isset($row['coach']) ? trim($row['coach']) : '';
             $medal = isset($row['medal']) ? trim($row['medal']) : '';
-
-            $allEmpty = ($first === '' && $middle === '' && $last === '' && $municipality === '' && $teamNames === '');
+            $allEmpty = ($first === '' && $middle === '' && $last === '' && $municipalityRaw === '' && $teamNames === '');
             if ($allEmpty) {
                 continue;
             }
+            $municipality = ($municipalityRaw === '') ? $fallbackMunicipality : $municipalityRaw;
 
             $labelMedal = in_array($medal, $allowed, true) ? $medal : 'Entry';
             $medalCounts[$labelMedal] = isset($medalCounts[$labelMedal]) ? $medalCounts[$labelMedal] + 1 : 1;
@@ -1024,9 +1025,9 @@ class Provincial extends CI_Controller
             }
 
             if ($entryType === 'team') {
-                if ($teamNames === '' || $municipality === '') {
+                if ($teamNames === '') {
                     if ($strictMissing) {
-                        $errors[] = $label . ' is missing team names or municipality.';
+                        $errors[] = $label . ' is missing team names.';
                     } else {
                         $skippedMissing++;
                     }
@@ -1037,9 +1038,9 @@ class Provincial extends CI_Controller
                 $middle = '';
                 $last = '';
             } else {
-                if ($first === '' || $last === '' || $municipality === '') {
+                if ($first === '' || $last === '') {
                     if ($strictMissing) {
-                        $errors[] = $label . ' is missing first name, last name, or municipality.';
+                        $errors[] = $label . ' is missing first name or last name.';
                     } else {
                         $skippedMissing++;
                     }
