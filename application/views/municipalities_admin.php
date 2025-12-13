@@ -51,9 +51,6 @@
     }
 </style>
 
-<!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <body>
     <div id="wrapper">
 
@@ -86,36 +83,30 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-12">
-                            <?php if ($this->session->flashdata('success')): ?>
-                                <script>
-                                    document.addEventListener('DOMContentLoaded', function() {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Success',
-                                            text: <?= json_encode($this->session->flashdata('success')); ?>,
-                                            timer: 3000,
-                                            showConfirmButton: false
-                                        });
-                                    });
-                                </script>
-                            <?php endif; ?>
-
-                            <?php if ($this->session->flashdata('error')): ?>
-                                <script>
-                                    document.addEventListener('DOMContentLoaded', function() {
-                                        Swal.fire({
-                                            icon: 'error',
-                                            title: 'Error',
-                                            text: <?= json_encode($this->session->flashdata('error')); ?>,
-                                            confirmButtonText: 'OK'
-                                        });
-                                    });
-                                </script>
-                            <?php endif; ?>
+                    <?php $flashSuccess = $this->session->flashdata('success'); ?>
+                    <?php $flashError = $this->session->flashdata('error'); ?>
+                    <?php if ($flashSuccess || $flashError): ?>
+                        <div class="row">
+                            <div class="col-12">
+                                <?php if ($flashSuccess): ?>
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        <?= htmlspecialchars($flashSuccess, ENT_QUOTES, 'UTF-8'); ?>
+                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($flashError): ?>
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <?= htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8'); ?>
+                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
 
                     <div class="row">
                         <div class="col-12">
@@ -295,22 +286,10 @@
             }
 
             $('.form-delete-municipality').on('submit', function(e) {
-                e.preventDefault();
-                var form = this;
-                Swal.fire({
-                    title: 'Delete this municipality?',
-                    text: 'This removes every matching address row.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, delete',
-                    cancelButtonText: 'Cancel'
-                }).then(function(result) {
-                    if (result.isConfirmed) {
-                        form.submit();
-                    }
-                });
+                var confirmed = window.confirm('Delete this team? This also removes matching addresses.');
+                if (!confirmed) {
+                    e.preventDefault();
+                }
             });
         });
     </script>

@@ -16,6 +16,7 @@ $route['journal/add_event'] = 'provincial/add_event';
 $route['journal/update_event'] = 'provincial/update_event';
 $route['journal/delete_event/(:num)'] = 'provincial/delete_event/$1';
 $route['journal'] = 'provincial/index';
+$route['journal/teams'] = 'provincial/municipalities'; // explicit alias (avoid CI looking for Provincial::teams)
 // catch-all for provincial routes when prefixed with /journal
 $route['journal/(:any)'] = 'provincial/$1';
 

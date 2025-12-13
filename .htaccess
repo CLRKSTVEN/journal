@@ -1,7 +1,8 @@
 RewriteEngine On
 
-# Adjust the base path if you move this folder (current folder name is "journal")
-RewriteBase /journal/
+# Use the directory of this file as the rewrite base. If your host needs an explicit
+# base (e.g., when the app sits under /journal/), uncomment and set RewriteBase.
+#RewriteBase /
 
 # Send everything except real files/directories to CodeIgniter
 RewriteCond %{REQUEST_FILENAME} !-f
