@@ -402,6 +402,8 @@ class Provincial extends CI_Controller
         foreach ($entries as $row) {
             $rank = isset($row['rank']) ? (int) $row['rank'] : 0;
             $event = trim((string) ($row['event_name'] ?? ''));
+            $eventGroup = trim((string) ($row['event_group'] ?? ''));
+            $category = trim((string) ($row['category'] ?? ''));
             $name  = trim((string) ($row['winner_name'] ?? ''));
             $team  = trim((string) ($row['municipality'] ?? ''));
             $school = trim((string) ($row['school'] ?? ''));
@@ -417,6 +419,8 @@ class Provincial extends CI_Controller
             $clean[] = array(
                 'rank'        => $rank,
                 'event_name'  => $event,
+                'event_group' => $eventGroup,
+                'category'    => $category,
                 'winner_name' => $name,
                 'municipality'=> $team,
                 'school'      => $school,

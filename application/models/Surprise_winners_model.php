@@ -17,8 +17,6 @@ class Surprise_winners_model extends CI_Model
             `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
             `rank` tinyint(2) NOT NULL,
             `event_name` varchar(255) NOT NULL,
-            `event_group` varchar(100) DEFAULT NULL,
-            `category` varchar(150) DEFAULT NULL,
             `winner_name` varchar(255) NOT NULL,
             `municipality` varchar(150) DEFAULT NULL,
             `school` varchar(200) DEFAULT NULL,
@@ -29,6 +27,15 @@ class Surprise_winners_model extends CI_Model
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $this->db->query($sql);
+
+        // Add missing columns if the table already existed
+        $columns = $this->db->list_fields($this->table);
+        if (!in_array('event_group', $columns, true)) {
+            $this->db->query("ALTER TABLE `{$this->table}` ADD COLUMN `event_group` varchar(100) DEFAULT NULL AFTER `event_name`");
+        }
+        if (!in_array('category', $columns, true)) {
+            $this->db->query("ALTER TABLE `{$this->table}` ADD COLUMN `category` varchar(150) DEFAULT NULL AFTER `event_group`");
+        }
     }
 
     public function get_all()

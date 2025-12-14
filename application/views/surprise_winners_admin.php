@@ -15,6 +15,7 @@
         margin-right: 6px;
         transition: all 0.15s ease;
     }
+
     .entry-type-toggle .entry-type-btn.active {
         background: #2563eb;
         border-color: #1d4ed8;
@@ -73,16 +74,16 @@
                     <div class="row">
                         <div class="col-12">
                             <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center justify-content-between flex-wrap">
-                                        <div>
-                                            <h5 class="card-title mb-0">Encode Top 5 Winners</h5>
-                                            <small class="text-muted">Matches the Add Winners modal, but hidden from the public site.</small>
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between flex-wrap">
+                                            <div>
+                                                <h5 class="card-title mb-0">Encode Top 5 Winners</h5>
+                                                <small class="text-muted">Admin-only; entries here never appear on the public viewing page.</small>
+                                            </div>
+                                            <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#top5Modal">
+                                                <i class="mdi mdi-plus-circle-outline"></i> Add / Edit Entries
+                                            </button>
                                         </div>
-                                        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#top5Modal">
-                                            <i class="mdi mdi-plus-circle-outline"></i> Add / Edit Entries
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -258,6 +259,93 @@
                 return opts;
             })();
 
+            function currentEventName() {
+                return $eventSelect.prop('disabled') ? $.trim($eventNameCustom.val() || '') : $.trim($eventSelect.val() || '');
+            }
+
+            function currentGroupName() {
+                return $groupSelect.prop('disabled') ? $.trim($groupInput.val() || '') : $.trim($groupSelect.val() || '');
+            }
+
+            function currentCategoryName() {
+                return $categorySelect.prop('disabled') ? $.trim($categoryInput.val() || '') : $.trim($categorySelect.val() || '');
+            }
+
+            function setEventMode(mode) {
+                var useCustom = mode === 'custom';
+                $eventNameCustom.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $eventSelect.toggle(!useCustom).prop('disabled', useCustom);
+                $eventModeToggle.text(useCustom ? 'Select' : 'Type').data('mode', useCustom ? 'select' : 'custom');
+                if (useCustom && $eventNameCustom.val().trim() === '' && $eventSelect.val()) {
+                    $eventNameCustom.val($eventSelect.find('option:selected').text());
+                }
+                if (!useCustom) {
+                    $eventNameCustom.val('');
+                }
+            }
+
+            function setGroupMode(mode) {
+                var useCustom = mode === 'custom';
+                $groupInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $groupSelect.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+                $groupModeToggle.text(useCustom ? 'Select' : 'Type').data('mode', useCustom ? 'select' : 'custom');
+                if (useCustom && $groupInput.val().trim() === '' && $groupSelect.val()) {
+                    $groupInput.val($groupSelect.find('option:selected').text());
+                }
+                if (!useCustom) {
+                    $groupInput.val('');
+                }
+            }
+
+            function setCategoryMode(mode) {
+                var useCustom = mode === 'custom';
+                $categoryInput.toggleClass('d-none', !useCustom).prop('disabled', !useCustom);
+                $categorySelect.toggleClass('d-none', useCustom).prop('disabled', useCustom);
+                $categoryModeToggle.text(useCustom ? 'Select' : 'Type').data('mode', useCustom ? 'select' : 'custom');
+                if (useCustom && $categoryInput.val().trim() === '' && $categorySelect.val()) {
+                    $categoryInput.val($categorySelect.find('option:selected').text());
+                }
+                if (!useCustom) {
+                    $categoryInput.val('');
+                }
+            }
+
+            $eventModeToggle.on('click', function() {
+                setEventMode($(this).data('mode'));
+            });
+            $groupModeToggle.on('click', function() {
+                setGroupMode($(this).data('mode'));
+            });
+            $categoryModeToggle.on('click', function() {
+                setCategoryMode($(this).data('mode'));
+            });
+
+            // sync group/category when event is selected
+            $eventSelect.on('change', function() {
+                var $opt = $(this).find('option:selected');
+                var grp = $opt.data('group') || '';
+                var cat = $opt.data('category') || '';
+                if (grp !== '') {
+                    if ($groupSelect.prop('disabled')) {
+                        $groupInput.val(grp);
+                    } else {
+                        $groupSelect.val(grp);
+                    }
+                }
+                if (cat !== '') {
+                    if ($categorySelect.prop('disabled')) {
+                        $categoryInput.val(cat);
+                    } else {
+                        $categorySelect.val(cat);
+                    }
+                }
+            });
+
+            // Default to select mode on load
+            setEventMode('select');
+            setGroupMode('select');
+            setCategoryMode('select');
+
             function getUsedRanks() {
                 var used = {};
                 $('#top5Rows').find('.rank-select').each(function() {
@@ -309,11 +397,20 @@
                 return html;
             }
 
+            function assignEventMetaToRow($row, evName, grpName, catName) {
+                $row.find('.event-name-hidden').val(evName || '');
+                $row.find('.event-group-hidden').val(grpName || '');
+                $row.find('.category-hidden').val(catName || '');
+            }
+
             function addTop5Row(data) {
                 if ($('#top5Rows .top5-row').length >= 5) return;
                 data = data || {};
                 rowCounter += 1;
                 var index = rowCounter;
+                var evName = data.event_name || currentEventName();
+                var grpName = data.event_group || currentGroupName();
+                var catName = data.category || currentCategoryName();
                 var rankVal = data.rank ? String(data.rank) : firstAvailableRank();
                 var $row = $(
                     '<div class="card top5-row" data-index="' + index + '" style="border:1px solid #e2e8f0;">' +
@@ -380,6 +477,9 @@
                     '<input type="text" name="surprise[' + index + '][coach]" class="form-control form-control-sm" placeholder="Coach">' +
                     '</div>' +
                     '</div>' +
+                    '<input type="hidden" class="event-name-hidden" name="surprise[' + index + '][event_name]" value="">' +
+                    '<input type="hidden" class="event-group-hidden" name="surprise[' + index + '][event_group]" value="">' +
+                    '<input type="hidden" class="category-hidden" name="surprise[' + index + '][category]" value="">' +
                     '<input type="hidden" class="winner-name-hidden" name="surprise[' + index + '][winner_name]" value="">' +
                     '</div>' +
                     '</div>'
@@ -396,6 +496,8 @@
                 $row.find('input[name="surprise[' + index + '][school]"]').val(data.school || '');
                 $row.find('input[name="surprise[' + index + '][coach]"]').val(data.coach || '');
 
+                assignEventMetaToRow($row, evName, grpName, catName);
+
                 $row.find('.rank-select').on('change', refreshRankOptions);
                 $row.find('.entry-type-btn').on('click', function() {
                     var mode = $(this).data('type');
@@ -406,6 +508,7 @@
                     refreshRankOptions();
                 });
 
+                setRowMode($row, data.entry_type || (data.team_names ? 'Team' : 'Individual'));
                 refreshRankOptions();
             }
 
@@ -435,6 +538,9 @@
 
             // Before submit, build winner_name from individual or team fields
             $('#top5Form').on('submit', function() {
+                var evName = currentEventName();
+                var grpName = currentGroupName();
+                var catName = currentCategoryName();
                 $('#top5Rows .top5-row').each(function() {
                     var $row = $(this);
                     var isTeam = ($row.find('.entry-type-value').val() || '').toLowerCase() === 'team';
@@ -449,6 +555,7 @@
                     }
                     var nameInput = $row.find('.winner-name-hidden');
                     nameInput.val(winnerName);
+                    assignEventMetaToRow($row, evName, grpName, catName);
                 });
             });
 
