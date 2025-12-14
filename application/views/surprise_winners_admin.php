@@ -71,7 +71,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-lg-10">
+                        <div class="col-12">
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center justify-content-between flex-wrap">
@@ -169,7 +169,7 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-lg-10">
+                        <div class="col-12">
                             <div class="card">
                                 <div class="card-body">
                                     <h5 class="card-title mb-3">Current Top 5 Winners</h5>
