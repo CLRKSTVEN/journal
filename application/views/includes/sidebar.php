@@ -62,6 +62,14 @@
                     </a>
                 </li>
 
+                <!-- Top 5 Winners (hidden from public) -->
+                <li class="<?= $isActive([$appSlug . '/top5']); ?>">
+                    <a href="<?= app_url('top5'); ?>" class="waves-effect">
+                        <i class="mdi mdi-gift-outline"></i>
+                        <span> Top 5 Winners </span>
+                    </a>
+                </li>
+
                 <!-- Reports -->
                 <li class="<?= $isActive([$appSlug . '/report']); ?>">
                     <a href="<?= app_url('report'); ?>" class="waves-effect">

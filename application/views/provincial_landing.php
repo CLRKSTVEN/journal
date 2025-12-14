@@ -336,8 +336,8 @@
                         ?>
 
                         <?php if (empty($activeMunicipality)): ?>
-                            <div class="row summary-row">
-                                <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="row summary-row justify-content-center">
+                                <div class="col-md-6 col-lg-5 mb-3 mb-md-0">
                                     <div class="summary-card clickable" id="municipalityCard"
                                         data-toggle="modal" data-target="#municipalityModal"
                                         data-bs-toggle="modal" data-bs-target="#municipalityModal"
@@ -347,7 +347,7 @@
                                         <!-- <div class="summary-sub">Total registered teams</div> -->
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="col-md-6 col-lg-5 mb-3 mb-md-0">
                                     <div class="summary-card clickable" id="eventsRecordedCard" role="button" tabindex="0"
                                         aria-label="View events with posted results">
                                         <div class="summary-label">Events Recorded</div>
@@ -355,27 +355,7 @@
                                         <!-- <div class="summary-sub">completed with reported winners</div> -->
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="summary-card clickable" id="totalMedalsCard" role="button" tabindex="0"
-                                        aria-label="View medal breakdown">
-                                        <div class="summary-label">Total Medals</div>
-                                        <div class="summary-value">
-                                            <span id="stat-total-medals"><?= $totalMedals; ?></span>
-                                            <span id="stat-medal-breakdown"
-                                                style="font-size:0.9rem;font-weight:700;color:#2563eb;">
-                                                (<span class="medal-filter" data-medal="1st" style="cursor:pointer;"><?= $firstTotal; ?>×1st</span>
-                                                · <span class="medal-filter" data-medal="2nd" style="cursor:pointer;"><?= $secondTotal; ?>×2nd</span>
-                                                · <span class="medal-filter" data-medal="3rd" style="cursor:pointer;"><?= $thirdTotal; ?>×3rd</span>
-                                                · <span class="medal-filter" data-medal="4th" style="cursor:pointer;"><?= $fourthTotal; ?>×4th</span>
-                                                · <span class="medal-filter" data-medal="5th" style="cursor:pointer;"><?= $fifthTotal; ?>×5th</span>)
-                                            </span>
-                                        </div>
-                                        <!--<div class="summary-sub">-->
-                                        <!--    Last update:-->
-                                        <!--    <span id="stat-last-update"><?= $lastUpdate; ?></span>-->
-                                        <!--</div>-->
-                                    </div>
-                                </div>
+                                <!-- Total medals card removed -->
                             </div>
 
                             <!-- Placements table -->

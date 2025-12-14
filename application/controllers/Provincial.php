@@ -13,6 +13,7 @@ class Provincial extends CI_Controller
         $this->load->model('Address_model');
         $this->load->model('MeetSettings_model'); // NEW
         $this->load->model('Technical_model'); // NEW
+        $this->load->model('Surprise_winners_model'); // Top 5 / hidden winners
         $this->load->library(array('form_validation', 'session'));
         $this->load->helper(array('url', 'form'));
         $this->appSlug = app_slug();
@@ -369,6 +370,82 @@ class Provincial extends CI_Controller
         $data['technical'] = $this->Technical_model->get_all();
 
         $this->load->view('dashboard_admin', $data);
+    }
+
+    /**
+     * Top 5 (hidden) winners manager – admin-only, not shown on public landing.
+     */
+    public function top5_winners()
+    {
+        $this->require_login();
+        $data['meet'] = $this->MeetSettings_model->get_settings();
+        $data['surprise_winners'] = $this->Surprise_winners_model->get_all();
+        // reuse dropdown data from admin
+        $data['events_list'] = $this->Events_model->get_events_with_meta_and_counts();
+        $data['event_groups'] = $this->Events_model->get_groups();
+        $data['event_categories'] = $this->Events_model->get_categories();
+        $data['municipalities'] = $this->Address_model->get_municipalities();
+        $this->load->view('surprise_winners_admin', $data);
+    }
+
+    public function save_top5_winners()
+    {
+        $this->require_login();
+        $entries = $this->input->post('surprise', TRUE);
+        if (!is_array($entries)) {
+            $this->session->set_flashdata('error', 'Please add at least one entry.');
+            redirect(app_url('top5'));
+            return;
+        }
+
+        $clean = array();
+        foreach ($entries as $row) {
+            $rank = isset($row['rank']) ? (int) $row['rank'] : 0;
+            $event = trim((string) ($row['event_name'] ?? ''));
+            $name  = trim((string) ($row['winner_name'] ?? ''));
+            $team  = trim((string) ($row['municipality'] ?? ''));
+            $school = trim((string) ($row['school'] ?? ''));
+            $coach  = trim((string) ($row['coach'] ?? ''));
+
+            if ($rank <= 0 || $rank > 5) {
+                continue;
+            }
+            if ($event === '' || $name === '') {
+                continue;
+            }
+
+            $clean[] = array(
+                'rank'        => $rank,
+                'event_name'  => $event,
+                'winner_name' => $name,
+                'municipality'=> $team,
+                'school'      => $school,
+                'coach'       => $coach,
+            );
+        }
+
+        if (empty($clean)) {
+            $this->session->set_flashdata('error', 'Please fill in at least one complete entry (rank, event, winner).');
+            redirect(app_url('top5'));
+            return;
+        }
+
+        // Keep only the first entry per rank (in case of duplicates)
+        $byRank = array();
+        foreach ($clean as $row) {
+            if (!isset($byRank[$row['rank']])) {
+                $byRank[$row['rank']] = $row;
+            }
+        }
+        ksort($byRank);
+
+        if ($this->Surprise_winners_model->replace_all(array_values($byRank))) {
+            $this->session->set_flashdata('success', 'Top 5 winners updated.');
+        } else {
+            $this->session->set_flashdata('error', 'Unable to save Top 5 winners right now.');
+        }
+
+        redirect(app_url('top5'));
     }
 
     /**
