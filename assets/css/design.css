@@ -114,19 +114,19 @@
         z-index: 0;
     }
 
-    /* Background accent: newspaper */
-    .landing-card-inner::after {
-        content: '';
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 260px;
-        height: 260px;
-        background: url('https://www.animatedimages.org/data/media/152/animated-newspaper-image-0022.gif') no-repeat center / contain;
-        opacity: 0.32;
-        pointer-events: none;
-        z-index: 0;
-    }
+/* Background accent: newspaper */
+.landing-card-inner::after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 260px;
+    height: 260px;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.08) 0, transparent 70%), radial-gradient(circle, rgba(148, 163, 184, 0.12) 0, transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 0;
+}
 
     .landing-header {
         display: flex;
@@ -227,25 +227,31 @@
         transition: all 0.18s ease;
     }
 
-    .banner-hero {
-        position: relative;
-        padding: 0;
-        border-bottom: 0;
-        margin-bottom: 18px;
-    }
+.banner-hero {
+    position: relative;
+    padding: 0;
+    border-bottom: 0;
+    margin-bottom: 18px;
+    text-align: center;
+}
 
-    .banner-image {
-        width: 100%;
-        height: 260px;
-        min-height: 230px;
-        max-height: 360px;
-        border-radius: 18px;
-        box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-color: #0f172a;
-    }
+.banner-image-wrap {
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    background: #f8fafc;
+}
+
+.banner-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 320px;
+    object-fit: contain;
+    object-position: center;
+}
 
     .banner-overlay {
         position: absolute;
@@ -1168,9 +1174,8 @@
         }
 
         .banner-image {
-            height: 220px;
-            min-height: 200px;
-            max-height: 260px;
+            height: auto;
+            max-height: 220px;
         }
 
         #liveTallyWrapper .winners-table {

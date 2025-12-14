@@ -127,7 +127,9 @@
                             };
                             ?>
                             <?php if ($activeMunicipalityHeader === ''): ?>
-                                <img src="<?= base_url('upload/banners/journal.jpg'); ?>" alt="<?= htmlspecialchars($meet_title . ' banner', ENT_QUOTES, 'UTF-8'); ?>" class="banner-image">
+                                <div class="banner-image-wrap">
+                                    <img src="<?= base_url('upload/banners/journal.jpg'); ?>" alt="<?= htmlspecialchars($meet_title . ' banner', ENT_QUOTES, 'UTF-8'); ?>" class="banner-image">
+                                </div>
                             <?php else: ?>
                                 <div class="landing-title">
                                     <h4>Official Result Board</h4>
