@@ -42,10 +42,23 @@
                                     $params[] = 'municipality=' . urlencode($activeMunicipalityFilter);
                                 }
                                 $base = $baseLandingUrl;
-                                if ($targetGroup === 'Elementary' || $targetGroup === 'Secondary') {
-                                    $params[] = 'group=' . urlencode($targetGroup);
-                                } elseif ($targetGroup === 'PARA') {
+                                if ($targetGroup === 'PARA') {
                                     $base = $paraLandingUrl;
+                                } elseif ($targetGroup !== 'ALL') {
+                                    $params[] = 'group=' . urlencode($targetGroup);
+                                }
+                                $query = empty($params) ? '' : '?' . implode('&', $params);
+                                return $base . $query;
+                            };
+                            $makeTeamUrl = function ($teamName) use ($group, $baseLandingUrl, $paraLandingUrl) {
+                                $teamName = trim((string) $teamName);
+                                $params = array();
+                                if ($teamName !== '') {
+                                    $params[] = 'municipality=' . urlencode($teamName);
+                                }
+                                $base = ($group === 'PARA') ? $paraLandingUrl : $baseLandingUrl;
+                                if ($group === 'Elementary' || $group === 'Secondary' || $group === 'Teachers') {
+                                    $params[] = 'group=' . urlencode($group);
                                 }
                                 $query = empty($params) ? '' : '?' . implode('&', $params);
                                 return $base . $query;
@@ -57,23 +70,51 @@
                             // Placement helpers to map medal values to 1st–5th labels
                             $placementLabel = function ($medal) {
                                 $m = strtolower(trim((string) $medal));
-                                if ($m === 'gold' || $m === '1st' || $m === 'first') return '1st';
-                                if ($m === 'silver' || $m === '2nd' || $m === 'second') return '2nd';
-                                if ($m === 'bronze' || $m === '3rd' || $m === 'third') return '3rd';
-                                if ($m === '4th' || $m === 'fourth') return '4th';
-                                if ($m === '5th' || $m === 'fifth') return '5th';
+                                $map = array(
+                                    'gold' => '1st',
+                                    '1st' => '1st',
+                                    'first' => '1st',
+                                    'silver' => '2nd',
+                                    '2nd' => '2nd',
+                                    'second' => '2nd',
+                                    'bronze' => '3rd',
+                                    '3rd' => '3rd',
+                                    'third' => '3rd'
+                                );
+                                if (isset($map[$m])) {
+                                    return $map[$m];
+                                }
+                                if (preg_match('/^(\\d{1,2})(st|nd|rd|th)$/', $m, $matches)) {
+                                    $rank = (int) $matches[1];
+                                    if ($rank >= 4 && $rank <= 15) {
+                                        return $rank . $matches[2];
+                                    }
+                                }
                                 return ucfirst($medal);
                             };
                             $placementKey = function ($medal) use ($placementLabel) {
                                 $label = $placementLabel($medal);
-                                if ($label === '1st') return 'first';
-                                if ($label === '2nd') return 'second';
-                                if ($label === '3rd') return 'third';
-                                if ($label === '4th') return 'fourth';
-                                if ($label === '5th') return 'fifth';
-                                return 'other';
+                                $ordinal = strtolower($label);
+                                $map = array(
+                                    '1st' => 'first',
+                                    '2nd' => 'second',
+                                    '3rd' => 'third',
+                                    '4th' => 'fourth',
+                                    '5th' => 'fifth',
+                                    '6th' => 'sixth',
+                                    '7th' => 'seventh',
+                                    '8th' => 'eighth',
+                                    '9th' => 'ninth',
+                                    '10th' => 'tenth',
+                                    '11th' => 'eleventh',
+                                    '12th' => 'twelfth',
+                                    '13th' => 'thirteenth',
+                                    '14th' => 'fourteenth',
+                                    '15th' => 'fifteenth'
+                                );
+                                return isset($map[$ordinal]) ? $map[$ordinal] : 'other';
                             };
-                            $placementOrder = array('first', 'second', 'third', 'fourth', 'fifth');
+                            $placementOrder = array('first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth');
 
                             $getCount = function ($stats, $fields) {
                                 $sum = 0;
@@ -110,6 +151,10 @@
                                 <a href="<?= $makeGroupUrl('Secondary'); ?>"
                                     class="btn btn-sm <?= $group === 'Secondary' ? 'btn-primary' : 'btn-outline-primary'; ?>">
                                     Secondary
+                                </a>
+                                <a href="<?= $makeGroupUrl('Teachers'); ?>"
+                                    class="btn btn-sm <?= $group === 'Teachers' ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                                    Teacher's Edition
                                 </a>
                                 <!-- <a href="<?= $makeGroupUrl('PARA'); ?>"
                                     class="btn btn-sm <?= $group === 'PARA' ? 'btn-primary' : 'btn-outline-primary'; ?>">
@@ -205,12 +250,32 @@
                                     'third'        => 0,
                                     'fourth'       => 0,
                                     'fifth'        => 0,
+                                    'sixth'        => 0,
+                                    'seventh'      => 0,
+                                    'eighth'       => 0,
+                                    'ninth'        => 0,
+                                    'tenth'        => 0,
+                                    'eleventh'     => 0,
+                                    'twelfth'      => 0,
+                                    'thirteenth'   => 0,
+                                    'fourteenth'   => 0,
+                                    'fifteenth'    => 0,
                                     'teams'        => array(),
                                     'first_teams'  => array(),
                                     'second_teams' => array(),
                                     'third_teams'  => array(),
                                     'fourth_teams' => array(),
-                                    'fifth_teams'  => array()
+                                    'fifth_teams'  => array(),
+                                    'sixth_teams'  => array(),
+                                    'seventh_teams'=> array(),
+                                    'eighth_teams' => array(),
+                                    'ninth_teams'  => array(),
+                                    'tenth_teams'  => array(),
+                                    'eleventh_teams' => array(),
+                                    'twelfth_teams'  => array(),
+                                    'thirteenth_teams' => array(),
+                                    'fourteenth_teams' => array(),
+                                    'fifteenth_teams' => array()
                                 );
                             }
 
@@ -326,6 +391,7 @@
                                         <thead>
                                             <tr>
                                                 <th class="text-center" style="width:90px;">Rank</th>
+                                                <th>Team</th>
                                                 <th>Event</th>
                                                 <th>Name (Winner)</th>
                                                 <th>School</th>
@@ -352,10 +418,24 @@
                                                     $coach = isset($w->coach) && trim($w->coach) !== '' ? $w->coach : '-';
                                                     $eventLabel = trim((string) ($w->event_name ?? ''));
                                                     $categoryLabel = trim((string) ($w->category ?? ''));
+                                                    $teamName = isset($w->municipality) ? trim((string) $w->municipality) : '';
+                                                    $rowLogo = $logoMap[$teamName] ?? '';
                                                     ?>
                                                     <tr>
                                                         <td class="text-center align-middle">
                                                             <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        </td>
+                                                        <td class="align-middle">
+                                                            <?php if ($teamName !== ''): ?>
+                                                                <a href="<?= $makeTeamUrl($teamName); ?>" class="d-flex align-items-center" style="gap:8px;text-decoration:none;">
+                                                                    <?php if (!empty($rowLogo)): ?>
+                                                                        <img src="<?= base_url('upload/team_logos/' . $rowLogo); ?>" alt="<?= htmlspecialchars($teamName, ENT_QUOTES, 'UTF-8'); ?> logo" class="team-logo">
+                                                                    <?php endif; ?>
+                                                                    <span><?= htmlspecialchars($teamName, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                                </a>
+                                                            <?php else: ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php endif; ?>
                                                         </td>
                                                         <td class="align-middle">
                                                             <?php if ($eventLabel !== ''): ?>
@@ -376,7 +456,7 @@
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr class="no-results-row">
-                                                    <td colspan="5" class="text-center py-4 text-muted">No placements posted yet.</td>
+                                                    <td colspan="6" class="text-center py-4 text-muted">No placements posted yet.</td>
                                                 </tr>
                                             <?php endif; ?>
                                         </tbody>
@@ -560,6 +640,7 @@
                                                 <th class="text-center">Group</th>
                                                 <th class="text-center">Category</th>
                                                 <th>Name</th>
+                                                <th>Team</th>
                                                 <th class="text-center">Placement</th>
                                                 <!-- School/Coach removed per request -->
                                             </tr>
@@ -580,6 +661,7 @@
                                                         $fullNameParts = array_filter(array($w->first_name ?? '', $w->middle_name ?? '', $w->last_name ?? ''));
                                                         $fullName = implode(' ', $fullNameParts);
                                                     }
+                                                    $rowLogo = $logoMap[$w->municipality ?? ''] ?? '';
                                                     ?>
                                                     <tr data-medal="<?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?>">
                                                         <td class="align-middle">
@@ -588,6 +670,14 @@
                                                         <td class="align-middle text-center"><?= htmlspecialchars($w->event_group ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="align-middle text-center"><?= htmlspecialchars($w->category ?? '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                                         <td class="align-middle"><?= htmlspecialchars($fullName, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                        <td class="align-middle">
+                                                            <div class="d-flex align-items-center" style="gap:8px;">
+                                                                <?php if (!empty($rowLogo)): ?>
+                                                                    <img src="<?= base_url('upload/team_logos/' . $rowLogo); ?>" alt="<?= htmlspecialchars($w->municipality ?? '', ENT_QUOTES, 'UTF-8'); ?> logo" class="team-logo">
+                                                                <?php endif; ?>
+                                                                <span><?= htmlspecialchars($w->municipality ?? '-', ENT_QUOTES, 'UTF-8'); ?></span>
+                                                            </div>
+                                                        </td>
                                                         <td class="align-middle text-center">
                                                             <span class="chip-medal <?= $chipClass; ?>"><?= htmlspecialchars($placement, ENT_QUOTES, 'UTF-8'); ?></span>
                                                         </td>
@@ -595,7 +685,7 @@
                                                 <?php endforeach; ?>
                                             <?php else: ?>
                                                 <tr class="no-results-row">
-                                                    <td colspan="5" class="text-center py-5 text-muted">
+                                                    <td colspan="6" class="text-center py-5 text-muted">
                                                         No encoded events for this team yet.
                                                     </td>
                                                 </tr>
@@ -626,7 +716,7 @@
     $allMunicipalities = isset($municipalities_all) ? $municipalities_all : array();
     $groupContext = isset($active_group) ? $active_group : 'ALL';
     $baseUrl = ($groupContext === 'PARA') ? app_url('para') : app_url();
-    $groupQuery = ($groupContext === 'Elementary' || $groupContext === 'Secondary')
+    $groupQuery = ($groupContext === 'Elementary' || $groupContext === 'Secondary' || $groupContext === 'Teachers')
         ? '&group=' . urlencode($groupContext)
         : '';
     $tallyMap = array();

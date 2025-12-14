@@ -286,7 +286,7 @@
             }
 
             $('.form-delete-municipality').on('submit', function(e) {
-                var confirmed = window.confirm('Delete this team? This also removes matching addresses.');
+                var confirmed = window.confirm('Delete this team? This also removes matching team.');
                 if (!confirmed) {
                     e.preventDefault();
                 }

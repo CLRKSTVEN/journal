@@ -20,25 +20,64 @@ class Provincial extends CI_Controller
 
     public function index()
     {
-        $group = $this->input->get('group', TRUE);
+        $groupInput = $this->input->get('group', TRUE);
+        $group = ($groupInput !== null && $groupInput !== '') ? $groupInput : 'ALL';
         $municipality = $this->input->get('municipality', TRUE);
 
+        $teacherGroups = $this->teacher_groups();
+        $isTeachers = $this->is_teacher_group_name($group);
         $isGrouped = ($group === 'Elementary' || $group === 'Secondary');
         $paraMode = ($group === 'PARA') ? 'include' : 'exclude';
 
         $municipalityMatch = ($group === 'PARA') ? 'like' : 'exact';
-        $winners  = $this->Winners_model->get_winners_list($isGrouped ? $group : null, $municipality, $paraMode, $municipalityMatch);
-        $overview = $this->Winners_model->get_overview($isGrouped ? $group : null, $municipality, $paraMode);
-        $active   = $isGrouped ? $group : 'ALL';
-        $tally    = $isGrouped
-            ? $this->Winners_model->get_medal_tally_by_group($group, $paraMode)
-            : $this->Winners_model->get_medal_tally($paraMode);
+        $excludeGroups = $isTeachers ? array() : $teacherGroups; // keep teachers-only rows out of "Overall"
+
+        // Determine which group filter to apply to the queries
+        $groupFilter = null;
+        if ($isGrouped) {
+            $groupFilter = $group;
+        } elseif ($isTeachers) {
+            $groupFilter = $teacherGroups;
+        }
+
+        $winners  = $this->Winners_model->get_winners_list($groupFilter, $municipality, $paraMode, $municipalityMatch, $excludeGroups);
+        $overview = $this->Winners_model->get_overview($groupFilter, $municipality, $paraMode, $excludeGroups);
+        $active   = $isGrouped ? $group : ($isTeachers ? 'Teachers' : 'ALL');
+        $tally    = ($isGrouped || $isTeachers)
+            ? $this->Winners_model->get_medal_tally_by_group($groupFilter, $paraMode, $excludeGroups)
+            : $this->Winners_model->get_medal_tally($paraMode, $excludeGroups);
+
+        // Filter events list to match the active tab (and keep Teacher entries out of Overall)
+        $eventsList = $this->Events_model->get_events_with_meta_and_counts($paraMode === 'include' ? 'include' : 'exclude');
+        if (is_array($eventsList)) {
+            $matchesGroup = function ($name, $list) {
+                foreach ($list as $g) {
+                    if (strcasecmp((string) $name, (string) $g) === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            if (!empty($groupFilter)) {
+                $groups = is_array($groupFilter) ? $groupFilter : array($groupFilter);
+                $eventsList = array_values(array_filter($eventsList, function ($ev) use ($groups, $matchesGroup) {
+                    $name = isset($ev->group_name) ? $ev->group_name : '';
+                    return $matchesGroup($name, $groups);
+                }));
+            } elseif (!empty($excludeGroups)) {
+                $eventsList = array_values(array_filter($eventsList, function ($ev) use ($excludeGroups, $matchesGroup) {
+                    $name = isset($ev->group_name) ? $ev->group_name : '';
+                    return !$matchesGroup($name, $excludeGroups);
+                }));
+            }
+        }
 
         // 🔹 NEW: one-row-per-event medal overview for "Events with Results"
         $events_results = $this->Winners_model->get_event_results_overview(
-            $isGrouped ? $group : null,
+            $groupFilter,
             $municipality,
-            $paraMode
+            $paraMode,
+            $excludeGroups
         );
 
         $data = array(
@@ -46,7 +85,7 @@ class Provincial extends CI_Controller
             'active_municipality' => $municipality,
             'winners'      => $winners,
             'overview'     => $overview,
-            'events_list'  => $this->Events_model->get_events_with_meta_and_counts('exclude'),
+            'events_list'  => $eventsList,
             'municipality_tally' => $tally,
             'municipalities_all' => $this->Address_model->get_municipalities(),
             'meet'         => $this->MeetSettings_model->get_settings(),
@@ -79,16 +118,34 @@ class Provincial extends CI_Controller
     {
         $municipality = $this->input->get('municipality', TRUE);
         $paraMode = 'include';
+        $excludeGroups = $this->teacher_groups(); // keep teacher entries out of PARA/overall
 
-        $winners  = $this->Winners_model->get_winners_list(null, $municipality, $paraMode, 'like');
-        $overview = $this->Winners_model->get_overview(null, $municipality, $paraMode);
-        $tally    = $this->Winners_model->get_medal_tally($paraMode);
+        $winners  = $this->Winners_model->get_winners_list(null, $municipality, $paraMode, 'like', $excludeGroups);
+        $overview = $this->Winners_model->get_overview(null, $municipality, $paraMode, $excludeGroups);
+        $tally    = $this->Winners_model->get_medal_tally($paraMode, $excludeGroups);
+
+        $eventsList = $this->Events_model->get_events_with_meta_and_counts('include');
+        if (is_array($eventsList) && !empty($excludeGroups)) {
+            $matchesGroup = function ($name, $list) {
+                foreach ($list as $g) {
+                    if (strcasecmp((string) $name, (string) $g) === 0) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            $eventsList = array_values(array_filter($eventsList, function ($ev) use ($excludeGroups, $matchesGroup) {
+                $name = isset($ev->group_name) ? $ev->group_name : '';
+                return !$matchesGroup($name, $excludeGroups);
+            }));
+        }
 
         // 🔹 NEW: per-event medals for PARA events
         $events_results = $this->Winners_model->get_event_results_overview(
             null,          // no Elementary/Secondary filter
             $municipality,
-            $paraMode      // include only PARA/Paragames based on event_name
+            $paraMode,     // include only PARA/Paragames based on event_name
+            $excludeGroups
         );
 
         $data = array(
@@ -96,7 +153,7 @@ class Provincial extends CI_Controller
             'active_municipality' => $municipality,
             'winners'      => $winners,
             'overview'     => $overview,
-            'events_list'  => $this->Events_model->get_events_with_meta_and_counts('include'),
+            'events_list'  => $eventsList,
             'municipality_tally' => $tally,
             'municipalities_all' => $this->Address_model->get_municipalities(),
             'meet'         => $this->MeetSettings_model->get_settings(),
@@ -122,6 +179,8 @@ class Provincial extends CI_Controller
     public function admin()
     {
         if ($this->input->post('submit')) {
+            // Keep the Add Winners modal open on redirect so users can continue adding.
+            $this->session->set_flashdata('open_winner_modal', true);
 
             $this->form_validation->set_rules('event_id', 'Event', 'trim|regex_match[/^[0-9]*$/]');
             $this->form_validation->set_rules('event_name_custom', 'Event Name', 'trim');
@@ -521,7 +580,7 @@ class Provincial extends CI_Controller
             $city = trim($this->input->post('city', TRUE));
 
             if ($this->Address_model->city_exists($city)) {
-                $this->session->set_flashdata('error', 'Municipality already exists.');
+                $this->session->set_flashdata('error', 'Team already exists.');
             } else {
                 $upload = $this->handle_logo_upload('logo');
                 if ($upload['error']) {
@@ -534,7 +593,7 @@ class Provincial extends CI_Controller
                 if ($upload['file']) {
                     $this->Address_model->set_logo($city, $upload['file']);
                 }
-                $this->session->set_flashdata('success', 'Municipality added.');
+                $this->session->set_flashdata('success', 'Team added.');
             }
         } else {
             $this->session->set_flashdata('error', validation_errors('', ''));
@@ -597,10 +656,10 @@ class Provincial extends CI_Controller
             $city = trim($this->input->post('city', TRUE));
 
             if (!$this->Address_model->city_exists($city)) {
-                $this->session->set_flashdata('error', 'Municipality not found.');
+                $this->session->set_flashdata('error', 'Team not found.');
             } else {
                 $this->Address_model->delete_city($city);
-                $this->session->set_flashdata('success', 'Municipality deleted.');
+                $this->session->set_flashdata('success', 'Team deleted.');
             }
         } else {
             $this->session->set_flashdata('error', validation_errors('', ''));
@@ -763,6 +822,8 @@ class Provincial extends CI_Controller
             $this->session->set_flashdata('error', validation_errors('', ''));
         }
 
+        // Keep the modal open on redirect so admins can continue editing/adding.
+        $this->session->set_flashdata('open_winner_modal', true);
         redirect(app_url('admin'));
     }
 
@@ -1039,8 +1100,8 @@ class Provincial extends CI_Controller
     {
         $validRows = array();
         $errors    = array();
-        $allowed   = array('Gold', 'Silver', 'Bronze', '4th', '5th');
-        $medalCounts = array('Gold' => 0, 'Silver' => 0, 'Bronze' => 0, '4th' => 0, '5th' => 0);
+        $allowed   = array('Gold', 'Silver', 'Bronze', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th', '13th', '14th', '15th');
+        $medalCounts = array('Gold' => 0, 'Silver' => 0, 'Bronze' => 0, '4th' => 0, '5th' => 0, '6th' => 0, '7th' => 0, '8th' => 0, '9th' => 0, '10th' => 0, '11th' => 0, '12th' => 0, '13th' => 0, '14th' => 0, '15th' => 0);
         $skippedMissing = 0;
         $fallbackMunicipality = 'No Team'; // allow saving even when no team is selected
 
@@ -1075,7 +1136,7 @@ class Provincial extends CI_Controller
                 : 'Entry #' . ($index + 1);
 
             if (!in_array($medal, $allowed, true)) {
-                $errors[] = $label . ' needs a valid placement (1st–5th).';
+                $errors[] = $label . ' needs a valid placement (1st–15th).';
                 continue;
             }
 
@@ -1137,6 +1198,35 @@ class Provincial extends CI_Controller
         }
 
         redirect(app_url('admin'));
+    }
+
+    /**
+     * Teacher's Edition helpers: canonical list and case-insensitive check.
+     */
+    private function teacher_groups()
+    {
+        return array(
+            'Teachers',
+            'Teacher',
+            "Teacher's Edition",
+            'Teachers Edition',
+            "Teachers' Edition",
+            'Teacher Edition'
+        );
+    }
+
+    private function is_teacher_group_name($group)
+    {
+        $needle = strtolower(trim((string) $group));
+        if ($needle === '') {
+            return false;
+        }
+        foreach ($this->teacher_groups() as $g) {
+            if ($needle === strtolower($g)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

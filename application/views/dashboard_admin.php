@@ -263,14 +263,37 @@
                     $brand_title = app_name();
                     $flash_success = $this->session->flashdata('success');
                     $flash_error   = $this->session->flashdata('error');
+                    $open_winner_modal = (bool) $this->session->flashdata('open_winner_modal');
                     $placementLabel = function ($medal) {
                         $m = strtolower(trim((string) $medal));
-                        if ($m === 'gold' || $m === '1st' || $m === 'first') return '1st';
-                        if ($m === 'silver' || $m === '2nd' || $m === 'second') return '2nd';
-                        if ($m === 'bronze' || $m === '3rd' || $m === 'third') return '3rd';
-                        if ($m === '4th' || $m === 'fourth') return '4th';
-                        if ($m === '5th' || $m === 'fifth') return '5th';
+                        $map = array(
+                            'gold' => '1st',
+                            '1st' => '1st',
+                            'first' => '1st',
+                            'silver' => '2nd',
+                            '2nd' => '2nd',
+                            'second' => '2nd',
+                            'bronze' => '3rd',
+                            '3rd' => '3rd',
+                            'third' => '3rd'
+                        );
+                        if (isset($map[$m])) {
+                            return $map[$m];
+                        }
+                        if (preg_match('/^(\\d{1,2})(st|nd|rd|th)$/', $m, $matches)) {
+                            $rank = (int) $matches[1];
+                            if ($rank >= 4 && $rank <= 15) {
+                                return $rank . $matches[2];
+                            }
+                        }
                         return ucfirst($medal);
+                    };
+                    $placementRank = function ($medal) use ($placementLabel) {
+                        $label = $placementLabel($medal);
+                        if (preg_match('/^(\\d{1,2})/', $label, $matches)) {
+                            return (int) $matches[1];
+                        }
+                        return 99; // lowest priority
                     };
                     ?>
 
@@ -383,14 +406,9 @@
                                                         } elseif ($placementText === '3rd') {
                                                             $badgeClass = 'badge-bronze';
                                                         }
-                                                        $orderMap = array(
-                                                            '5th' => 1,
-                                                            '4th' => 2,
-                                                            '3rd' => 3,
-                                                            '2nd' => 4,
-                                                            '1st' => 5
-                                                        );
-                                                        $medalOrder = isset($orderMap[$placementText]) ? $orderMap[$placementText] : 0;
+                                                        $rankValue = $placementRank($row->medal);
+                                                        // Larger order value = higher rank for DataTables sorting
+                                                        $medalOrder = $rankValue > 0 ? (100 - $rankValue) : 0;
                                                         $createdAt = $row->created_at ?? '';
                                                         $createdSort = $createdAt ? strtotime($createdAt) : 0;
                                                         ?>
@@ -753,7 +771,7 @@
                     </div>
 
                     <div class="alert alert-info py-2">
-                        Add placements (1st–5th) in one go. Empty rows are skipped.
+                        Add winners up to 15th place. Use the placement dropdown per entry; empty rows are skipped.
                     </div>
 
                     <div id="municipalityOptionsTemplate" class="d-none">
@@ -766,69 +784,17 @@
                         <?php endforeach; ?>
                     </div>
 
-                    <div class="medal-section" data-medal="Gold">
+                    <div class="medal-section">
                         <div class="medal-header mb-2">
                             <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-gold mr-2">1st Place</span>
-                                <span class="text-muted small">Winners for this placement</span>
+                                <span class="badge badge-medal badge-gold mr-2">Placements</span>
+                                <span class="text-muted small">Add any placement via the dropdown.</span>
                             </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Gold">
-                                <i class="mdi mdi-plus"></i> Add 1st place
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addWinnerRowBtn">
+                                <i class="mdi mdi-plus"></i> Add entry
                             </button>
                         </div>
-                        <div class="medal-rows" id="goldRows"></div>
-                    </div>
-
-                    <div class="medal-section" data-medal="Silver">
-                        <div class="medal-header mb-2">
-                            <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-silver mr-2">2nd Place</span>
-                                <span class="text-muted small">Add one or more 2nd placers</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Silver">
-                                <i class="mdi mdi-plus"></i> Add 2nd place
-                            </button>
-                        </div>
-                        <div class="medal-rows" id="silverRows"></div>
-                    </div>
-
-                    <div class="medal-section mb-0" data-medal="Bronze">
-                        <div class="medal-header mb-2">
-                            <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-bronze mr-2">3rd Place</span>
-                                <span class="text-muted small">Add any 3rd placers</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="Bronze">
-                                <i class="mdi mdi-plus"></i> Add 3rd place
-                            </button>
-                        </div>
-                        <div class="medal-rows" id="bronzeRows"></div>
-                    </div>
-
-                    <div class="medal-section mb-0" data-medal="4th">
-                        <div class="medal-header mb-2">
-                            <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-silver mr-2">4th Place</span>
-                                <span class="text-muted small">Optional: capture 4th place finishers</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="4th">
-                                <i class="mdi mdi-plus"></i> Add 4th place
-                            </button>
-                        </div>
-                        <div class="medal-rows" id="fourthRows"></div>
-                    </div>
-
-                    <div class="medal-section mb-0" data-medal="5th">
-                        <div class="medal-header mb-2">
-                            <div class="d-flex align-items-center">
-                                <span class="badge badge-medal badge-silver mr-2">5th Place</span>
-                                <span class="text-muted small">Optional: capture 5th place finishers</span>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm btn-add-medal" data-medal="5th">
-                                <i class="mdi mdi-plus"></i> Add 5th place
-                            </button>
-                        </div>
-                        <div class="medal-rows" id="fifthRows"></div>
+                        <div id="winnerRows"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -949,6 +915,7 @@
             var $eventModeToggle = $('.toggle-event-mode');
             var $groupModeToggle = $('.toggle-group-mode');
             var $categoryModeToggle = $('.toggle-category-mode');
+            var reopenWinnerModal = <?= $open_winner_modal ? 'true' : 'false'; ?>;
             var eventsMeta = <?= json_encode(array_map(function ($ev) {
                                     return array(
                                         'id' => (int)$ev->event_id,
@@ -972,16 +939,68 @@
             groupOptions.sort(function(a, b) {
                 return (a.name || '').localeCompare(b.name || '');
             });
-            var medalContainers = {
-                Gold: $('#goldRows'),
-                Silver: $('#silverRows'),
-                Bronze: $('#bronzeRows'),
-                '4th': $('#fourthRows'),
-                '5th': $('#fifthRows')
-            };
+            var $winnerRows = $('#winnerRows');
+            var placementOptions = [
+                { value: 'Gold', label: '1st (Gold)' },
+                { value: 'Silver', label: '2nd (Silver)' },
+                { value: 'Bronze', label: '3rd (Bronze)' },
+                { value: '4th', label: '4th Place' },
+                { value: '5th', label: '5th Place' },
+                { value: '6th', label: '6th Place' },
+                { value: '7th', label: '7th Place' },
+                { value: '8th', label: '8th Place' },
+                { value: '9th', label: '9th Place' },
+                { value: '10th', label: '10th Place' },
+                { value: '11th', label: '11th Place' },
+                { value: '12th', label: '12th Place' },
+                { value: '13th', label: '13th Place' },
+                { value: '14th', label: '14th Place' },
+                { value: '15th', label: '15th Place' }
+            ];
             var municipalityOptionsHtml = $('#municipalityOptionsTemplate').html();
             var rowCounter = 0;
             var isEditMode = false;
+
+            function getUsedPlacements() {
+                var used = {};
+                $winnerRows.find('.medal-select').each(function() {
+                    var val = ($(this).val() || '').toString();
+                    if (val !== '') {
+                        used[val] = (used[val] || 0) + 1;
+                    }
+                });
+                return used;
+            }
+
+            function firstAvailablePlacement() {
+                var used = getUsedPlacements();
+                for (var i = 0; i < placementOptions.length; i++) {
+                    if (!used[placementOptions[i].value]) {
+                        return placementOptions[i].value;
+                    }
+                }
+                return placementOptions[0].value;
+            }
+
+            function rebuildPlacementSelect($select) {
+                var current = ($select.val() || '').toString();
+                var used = getUsedPlacements();
+                var html = '';
+                placementOptions.forEach(function(opt) {
+                    if (used[opt.value] && opt.value !== current) {
+                        return; // skip already-used placements (except this row's current)
+                    }
+                    var selected = (opt.value === current) ? 'selected' : '';
+                    html += '<option value="' + opt.value + '" ' + selected + '>' + opt.label + '</option>';
+                });
+                $select.html(html);
+            }
+
+            function refreshPlacementOptions() {
+                $winnerRows.find('.medal-select').each(function() {
+                    rebuildPlacementSelect($(this));
+                });
+            }
 
             function setEventCreateMode() {
                 $eventForm.attr('action', createEventAction);
@@ -1055,9 +1074,7 @@
             }
 
             function clearAllRows() {
-                $.each(medalContainers, function(key, $container) {
-                    $container.empty();
-                });
+                $winnerRows.empty();
             }
 
             function setRowMode($row, mode) {
@@ -1079,44 +1096,27 @@
 
             function addWinnerRow(medal, data) {
                 data = data || {};
-                if (!medalContainers[medal]) {
-                    return;
-                }
-
-                if (isEditMode) {
-                    clearAllRows();
-                }
-
                 rowCounter += 1;
                 var index = rowCounter;
-                var badgeClass = 'badge-bronze';
-                var badgeLabel = medal;
-                if (medal === 'Gold') {
-                    badgeClass = 'badge-gold';
-                    badgeLabel = '1st Place';
-                } else if (medal === 'Silver') {
-                    badgeClass = 'badge-silver';
-                    badgeLabel = '2nd Place';
-                } else if (medal === 'Bronze') {
-                    badgeClass = 'badge-bronze';
-                    badgeLabel = '3rd Place';
-                } else if (medal === '4th' || medal === '5th') {
-                    badgeClass = 'badge-silver';
-                    badgeLabel = medal + ' Place';
-                }
+                var currentMedal = medal || firstAvailablePlacement();
+                var entryNumber = $winnerRows.find('.medal-row').length + 1;
+                var placementSelect = '<select name="winners[' + index + '][medal]" class="form-control form-control-sm medal-select"></select>';
 
-                var entryNumber = medalContainers[medal].find('.medal-row').length + 1;
                 var $row = $(
-                    '<div class="medal-row card mb-2" data-medal="' + medal + '">' +
+                    '<div class="medal-row card mb-2" data-medal="' + currentMedal + '">' +
                     '<div class="card-body pb-2">' +
                     '<div class="d-flex align-items-center justify-content-between mb-2">' +
                     '<div class="d-flex align-items-center">' +
-                    '<span class="badge badge-medal ' + badgeClass + ' mr-2">' + badgeLabel + '</span>' +
+                    '<span class="badge badge-medal badge-silver mr-2 placement-badge">Placement</span>' +
                     '<small class="text-muted">Entry ' + entryNumber + '</small>' +
                     '</div>' +
                     '<button type="button" class="btn btn-link text-danger p-0 btn-remove-row">Remove</button>' +
                     '</div>' +
                     '<div class="form-row align-items-end">' +
+                    '<div class="form-group col-md-4">' +
+                    '<label class="small text-muted mb-1">Placement</label>' +
+                    placementSelect +
+                    '</div>' +
                     '<div class="form-group col-md-4">' +
                     '<label class="small text-muted mb-1">Entry type</label>' +
                     '<div class="entry-type-toggle">' +
@@ -1125,7 +1125,7 @@
                     '<button type="button" class="entry-type-btn" data-type="Team">Team</button>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="form-group col-md-8 team-fields d-none">' +
+                    '<div class="form-group col-md-4 team-fields d-none">' +
                     '<label class="small text-muted mb-1">Team members / names</label>' +
                     '<textarea name="winners[' + index + '][team_names]" class="form-control form-control-sm" rows="2" placeholder="Enter one or multiple names for this team"></textarea>' +
                     '</div>' +
@@ -1160,12 +1160,12 @@
                     '<input type="text" name="winners[' + index + '][coach]" class="form-control form-control-sm" placeholder="Coach">' +
                     '</div>' +
                     '</div>' +
-                    '<input type="hidden" name="winners[' + index + '][medal]" value="' + medal + '">' +
                     '</div>' +
                     '</div>'
                 );
 
                 $row.find('input[name="winners[' + index + '][first_name]"]').val(data.first_name || '');
+                $winnerRows.append($row);
                 $row.find('input[name="winners[' + index + '][middle_name]"]').val(data.middle_name || '');
                 $row.find('input[name="winners[' + index + '][last_name]"]').val(data.last_name || '');
                 var combinedNames = $.trim([data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' '));
@@ -1173,25 +1173,56 @@
                 $row.find('select[name="winners[' + index + '][municipality]"]').val(data.municipality || '');
                 $row.find('input[name="winners[' + index + '][school]"]').val(data.school || '');
                 $row.find('input[name="winners[' + index + '][coach]"]').val(data.coach || '');
+                $row.find('.medal-select').val(currentMedal);
+                rebuildPlacementSelect($row.find('.medal-select'));
 
-                medalContainers[medal].append($row);
                 var mode = (data.entry_type || 'Individual');
                 setRowMode($row, mode);
+                updatePlacementBadge($row);
+                refreshPlacementOptions();
 
                 $row.find('.entry-type-btn').on('click', function() {
                     setRowMode($row, $(this).data('type'));
                 });
+
+                $row.find('.medal-select').on('change', function() {
+                    updatePlacementBadge($row);
+                    refreshPlacementOptions();
+                });
+            }
+
+            function updatePlacementBadge($row) {
+                var medalVal = ($row.find('.medal-select').val() || '').toString();
+                var badge = $row.find('.placement-badge');
+                var label = medalVal;
+                var badgeClass = 'badge-silver';
+                if (medalVal === 'Gold') {
+                    label = '1st Place';
+                    badgeClass = 'badge-gold';
+                } else if (medalVal === 'Silver') {
+                    label = '2nd Place';
+                    badgeClass = 'badge-silver';
+                } else if (medalVal === 'Bronze') {
+                    label = '3rd Place';
+                    badgeClass = 'badge-bronze';
+                } else {
+                    label = medalVal + ' Place';
+                    badgeClass = 'badge-secondary';
+                }
+                badge.removeClass('badge-gold badge-silver badge-bronze badge-secondary').addClass(badgeClass).text(label);
             }
 
             function seedDefaultRows() {
                 clearAllRows();
                 rowCounter = 0;
                 addWinnerRow('Gold');
+                refreshPlacementOptions();
             }
 
             function ensureBaseRows() {
-                if (medalContainers.Gold.find('.medal-row').length === 0) {
+                if ($winnerRows.find('.medal-row').length === 0) {
                     addWinnerRow('Gold');
+                    refreshPlacementOptions();
                 }
             }
 
@@ -1265,13 +1296,13 @@
                 }
             }
 
-            $(document).on('click', '.btn-add-medal', function() {
-                var medal = $(this).data('medal');
-                addWinnerRow(medal);
+            $('#addWinnerRowBtn').on('click', function() {
+                addWinnerRow(firstAvailablePlacement());
             });
 
             $(document).on('click', '.btn-remove-row', function() {
                 $(this).closest('.medal-row').remove();
+                refreshPlacementOptions();
             });
 
             $eventModeToggle.on('click', function() {
@@ -1313,6 +1344,8 @@
                 isEditMode = true;
                 $winnerForm.attr('action', updateAction);
                 $('#winnerIdField').val(data.id || '');
+                clearAllRows();
+                rowCounter = 0;
                 setGroupMode('select');
                 setCategoryMode('select');
                 setEventMode('select');
@@ -1419,6 +1452,7 @@
 
                 $winnerSubmitBtn.html('<i class="mdi mdi-content-save-outline"></i> Update Winner');
                 $winnerModalLabel.text('Edit Winner');
+                refreshPlacementOptions();
             }
 
 
@@ -1434,6 +1468,7 @@
                 if (!isEditMode) {
                     ensureBaseRows();
                 }
+                refreshPlacementOptions();
             });
 
             $('.btn-edit-winner').on('click', function() {
@@ -1472,7 +1507,12 @@
                 $('#eventModal').modal('show');
             });
 
-            seedDefaultRows();
+            if (reopenWinnerModal) {
+                setCreateMode();
+                $('#winnerModal').modal('show');
+            } else {
+                seedDefaultRows();
+            }
 
             if ($.fn.DataTable) {
                 $('#recentWinnersTable').DataTable({
